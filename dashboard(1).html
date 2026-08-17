@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turnover &amp; Headcount · 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #eef1ee;
+    --paper: #ffffff;
+    --ink: #1c1f1c;
+    --ink-soft: #5a5f5a;
+    --line: #d8dcd6;
+    --teal: #1f6f5c;
+    --teal-soft: #dbe9e4;
+    --clay: #b4502a;
+    --clay-soft: #f3ddd0;
+    --mustard: #c99a3b;
+    --mustard-soft: #f2e7cd;
+    --navy: #2b4570;
+    --navy-soft: #dfe4ee;
+    --olive: #6b7f4e;
+    --olive-soft: #e5e9db;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:40px 48px 80px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:38px;
+    line-height:1.05;
+    margin:6px 0 4px;
+    letter-spacing:-.01em;
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:640px;
+    margin:0 0 32px;
+  }
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:24px;
+    margin-bottom:28px;
+  }
+  .period-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 16px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .period-tag b{color:var(--ink);font-weight:600;}
+  .sync-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block;}
+  .sync-dot.off{background:var(--clay);}
+
+  /* KPI strip */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:12px;
+    margin-bottom:28px;
+  }
+  .kpi{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi .lbl{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:10px;
+    min-height:28px;
+  }
+  .kpi .val{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:30px;
+    font-weight:700;
+    letter-spacing:-.02em;
+  }
+  .kpi .delta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    margin-top:6px;
+    display:inline-block;
+  }
+  .kpi.accent-teal{border-top:3px solid var(--teal);}
+  .kpi.accent-clay{border-top:3px solid var(--clay);}
+  .kpi.accent-mustard{border-top:3px solid var(--mustard);}
+  .up{color:var(--teal);}
+  .down{color:var(--clay);}
+
+  /* Grid layout */
+  .grid{
+    display:grid;
+    grid-template-columns:1.55fr 1fr;
+    gap:16px;
+    margin-bottom:16px;
+  }
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 24px 20px;
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+    font-weight:600;
+    margin:0 0 2px;
+  }
+  .panel-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+  .panel .desc{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 18px;
+  }
+
+  /* Evolution chart */
+  .legend{
+    display:flex;
+    gap:18px;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+  .area-rows{display:flex;flex-direction:column;gap:12px;}
+  .area-row{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:10px;}
+  .area-row .name{font-size:13px;font-weight:500;}
+  .bar-track{background:var(--bg);border-radius:6px;height:10px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;}
+  .area-row .num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-align:right;color:var(--ink-soft);}
+
+  .motivo-split{display:flex;height:34px;border-radius:8px;overflow:hidden;margin-top:6px;margin-bottom:10px;}
+  .motivo-legend{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);}
+  .motivo-legend b{color:var(--ink);font-family:'IBM Plex Mono',monospace;}
+
+  hr.divider{border:none;border-top:1px solid var(--line);margin:20px 0;}
+
+  /* Swimlane / signature element */
+  .swimlane-wrap{overflow-x:auto;}
+  .swimlane{
+    display:grid;
+    grid-template-columns:230px repeat(12,64px);
+    min-width:1000px;
+    row-gap:8px;
+    column-gap:4px;
+  }
+  .sw-head{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+    text-align:center;
+  }
+  .sw-head.name-head{text-align:left;}
+  .sw-name{
+    font-size:12.5px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    padding-right:8px;
+  }
+  .sw-name .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sw-name .row-actions{display:flex;gap:4px;flex-shrink:0;}
+  select.sw-select{
+    width:100%;
+    height:26px;
+    border-radius:5px;
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    font-weight:600;
+    text-align:center;
+    text-align-last:center;
+    -webkit-appearance:none;
+    appearance:none;
+    cursor:pointer;
+  }
+  select.sw-select:focus{outline:2px solid var(--navy);}
+  .store-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--ink-soft);align-items:center;}
+  .store-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sq{width:10px;height:10px;border-radius:3px;}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    font-weight:600;
+    padding:0 10px 10px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--ink);}
+  thead th .arrow{font-size:9px;opacity:.5;margin-left:3px;}
+  tbody td{
+    padding:10px 10px;
+    border-bottom:1px solid var(--bg);
+  }
+  tbody tr:hover{background:var(--bg);}
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    font-family:'IBM Plex Mono',monospace;
+    padding:2px 8px;
+    border-radius:5px;
+  }
+  .tenure-bar{background:var(--bg);border-radius:5px;height:6px;width:100px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;}
+  .tenure-fill{height:100%;background:var(--navy);border-radius:5px;}
+
+  footer{
+    margin-top:28px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+
+  @media (max-width:980px){
+    .kpis{grid-template-columns:repeat(3,1fr);}
+    .grid{grid-template-columns:1fr;}
+    body{padding:28px 20px 60px;}
+    h1{font-size:28px;}
+  }
+
+  /* ---------- Botões / ações ---------- */
+  .edit-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    padding:9px 18px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .edit-btn:hover{opacity:.88;}
+  .edit-btn.secondary{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
+  .edit-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .mini-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:3px 7px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .mini-btn:hover{color:var(--ink);border-color:var(--ink-soft);}
+  .mini-btn.danger{color:var(--clay);border-color:var(--clay-soft);}
+  .mini-btn.danger:hover{background:var(--clay-soft);}
+  .mini-btn.ok{color:var(--teal);border-color:var(--teal-soft);}
+  .mini-btn.ok:hover{background:var(--teal-soft);}
+
+  .modal-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(28,31,28,.55);
+    z-index:100;
+    align-items:flex-start;
+    justify-content:center;
+    padding:40px 20px;
+    overflow-y:auto;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:var(--paper);
+    border-radius:var(--radius);
+    max-width:760px;
+    width:100%;
+    padding:26px 28px 24px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+  }
+  .modal.narrow{max-width:440px;}
+  .modal h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .modal p.hint{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 16px;
+    line-height:1.5;
+  }
+  .modal textarea{
+    width:100%;
+    height:360px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    line-height:1.55;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    resize:vertical;
+    color:var(--ink);
+    background:#fbfbfa;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field input[type=text],
+  .field input[type=date],
+  .field select{
+    width:100%;
+    padding:9px 11px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+    background:#fbfbfa;
+  }
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .radio-row{display:flex; gap:16px; margin-top:2px;}
+  .radio-row label{display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; letter-spacing:0; color:var(--ink); font-family:'Inter',sans-serif;}
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    border-radius:8px;
+    padding:9px 16px;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+  }
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .btn.primary:hover{opacity:.9;}
+  .btn.ghost{background:transparent;}
+  .btn.danger{color:var(--clay);border-color:var(--clay-soft);}
+  .modal-msg{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    margin-top:10px;
+    min-height:16px;
+  }
+  .modal-msg.ok{color:var(--teal);}
+  .modal-msg.err{color:var(--clay);}
+  .file-input{display:none;}
+  .storage-note{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+    line-height:1.5;
+  }
+  .loading-veil{
+    position:fixed; inset:0; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:13px;
+    z-index:200;
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-veil" id="loadingVeil">Carregando dados do painel…</div>
+
+<header class="top">
+  <div>
+    <div class="eyebrow">RH · Pessoas &amp; Operações</div>
+    <h1>Turnover &amp; Headcount</h1>
+    <p class="sub">Panorama de admissões, desligamentos e movimentação entre lojas da rede ao longo de 2026. Edite colaboradores e lojas diretamente abaixo — as mudanças ficam salvas para qualquer pessoa que abrir este link.</p>
+  </div>
+  <div class="edit-toolbar">
+    <div class="sync-tag" id="syncTag"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">sincronizado</span></div>
+    <div class="period-tag">Período <b>Jan</b> – <b>Dez/2026</b> · real até Ago · Set–Dez projetado</div>
+    <button class="edit-btn secondary" id="openJsonBtn" type="button">⚙ Backup / avançado</button>
+  </div>
+</header>
+
+<!-- ================= MODAL: backup / JSON avançado ================= -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <h3>Backup e edição avançada</h3>
+    <p class="hint">Uso opcional. O jeito prático de editar colaboradores e lojas é direto nos painéis abaixo. Aqui você pode baixar/carregar um backup completo em JSON, ou editar tudo de uma vez.</p>
+    <textarea id="dataTextarea" spellcheck="false"></textarea>
+    <div class="modal-actions">
+      <button class="btn primary" id="saveDataBtn" type="button">Salvar alterações</button>
+      <button class="btn ghost" id="cancelEditBtn" type="button">Cancelar</button>
+      <button class="btn ghost" id="downloadBackupBtn" type="button">Baixar backup (.json)</button>
+      <button class="btn ghost" id="uploadBackupBtn" type="button">Carregar backup</button>
+      <button class="btn danger" id="resetDataBtn" type="button">Restaurar padrão</button>
+      <input type="file" accept="application/json" class="file-input" id="uploadBackupInput">
+    </div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <div class="storage-note" id="storageNote"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: novo colaborador ================= -->
+<div class="modal-overlay" id="novoOverlay">
+  <div class="modal narrow">
+    <h3>Novo colaborador</h3>
+    <p class="hint">Preencha os dados. A loja escolhida é aplicada a partir do mês de admissão até dezembro — depois ajuste mês a mês se houver transferência.</p>
+    <div class="field"><label>Nome</label><input type="text" id="novoNome" placeholder="Nome completo"></div>
+    <div class="field-row">
+      <div class="field"><label>Cargo</label><input type="text" id="novoCargo" placeholder="Ex: Vendedor (a)"></div>
+      <div class="field"><label>Área</label><input type="text" id="novoArea" placeholder="Ex: Vendas" list="areaList"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data de admissão</label><input type="date" id="novoAdmissao"></div>
+      <div class="field"><label>Loja</label><select id="novoLoja"></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" id="salvarNovoBtn" type="button">Adicionar colaborador</button>
+      <button class="btn ghost" id="cancelarNovoBtn" type="button">Cancelar</button>
+    </div>
+    <div class="modal-msg" id="novoMsg"></div>
+  </div>
+</div>
+<datalist id="areaList"></datalist>
+
+<!-- ================= MODAL: editar colaborador ================= -->
+<div class="modal-overlay" id="editarOverlay">
+  <div class="modal narrow">
+    <h3>Editar colaborador</h3>
+    <div class="field"><label>Nome</label><input type="text" id="editNome"></div>
+    <div class="field-row">
+      <div class="field"><label>Cargo</label><input type="text" id="editCargo"></div>
+      <div class="field"><label>Área</label><input type="text" id="editArea" list="areaList"></div>
+    </div>
+    <div class="field"><label>Data de admissão</label><input type="date" id="editAdmissao"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="salvarEditBtn" type="button">Salvar</button>
+      <button class="btn ghost" id="cancelarEditBtn" type="button">Cancelar</button>
+      <button class="btn danger" id="excluirBtn" type="button">Excluir permanentemente</button>
+    </div>
+    <div class="modal-msg" id="editMsg"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL: desligar colaborador ================= -->
+<div class="modal-overlay" id="desligarOverlay">
+  <div class="modal narrow">
+    <h3>Desligar colaborador</h3>
+    <p class="hint" id="desligarNomeHint"></p>
+    <div class="field">
+      <label>Motivo do desligamento</label>
+      <div class="radio-row">
+        <label><input type="radio" name="motivoDeslig" value="empresa" checked> Por parte da empresa</label>
+        <label><input type="radio" name="motivoDeslig" value="colaborador"> Por parte do colaborador</label>
+      </div>
+    </div>
+    <div class="field"><label>Data de desligamento</label><input type="date" id="desligarData"></div>
+    <div class="modal-actions">
+      <button class="btn danger" id="confirmarDesligarBtn" type="button">Confirmar desligamento</button>
+      <button class="btn ghost" id="cancelarDesligarBtn" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<section class="kpis" id="kpis"></section>
+
+<section class="grid">
+  <div class="panel">
+    <h2>Evolução mensal</h2>
+    <p class="desc">Headcount final (linha) sobreposto ao turnover mensal (barras). Jan–Ago são dados reais; Set–Dez recalculam sozinhos conforme você admite ou desliga colaboradores.</p>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--navy)"></span>Headcount final</span>
+      <span><span class="dot" style="background:var(--clay)"></span>Turnover mensal (%)</span>
+    </div>
+    <div id="evoChart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Colaboradores ativos por área</h2>
+    <p class="desc" id="areasDesc">Distribuição do quadro atual.</p>
+    <div class="area-rows" id="areaRows"></div>
+
+    <hr class="divider">
+
+    <h2>Desligamentos por motivo</h2>
+    <p class="desc" id="motivoDesc">Total de saídas em 2026.</p>
+    <div class="motivo-split" id="motivoSplit"></div>
+    <div class="motivo-legend">
+      <span><b id="motivoEmpresaNum">0</b> por parte da empresa</span>
+      <span><b id="motivoColabNum">0</b> por parte do colaborador</span>
+    </div>
+  </div>
+</section>
+
+<section class="panel" style="margin-bottom:16px;">
+  <div class="panel-head">
+    <div>
+      <h2>Mapa de movimentação entre lojas</h2>
+      <p class="desc">Cada linha é um colaborador (ativo ou desligado). Escolha a loja de cada mês pelo menu suspenso — mudar de loja de um mês para o outro é registrado automaticamente como transferência. Células "—" indicam fora da empresa naquele mês.</p>
+    </div>
+    <div class="edit-toolbar">
+      <button class="edit-btn" id="openNovoBtn" type="button">+ Novo colaborador</button>
+    </div>
+  </div>
+  <div class="swimlane-wrap">
+    <div class="swimlane" id="swimlane"></div>
+  </div>
+  <div class="store-legend" id="storeLegend"></div>
+</section>
+
+<section class="panel">
+  <h2>Quadro de colaboradores ativos</h2>
+  <p class="desc" id="rosterDesc">Pessoas ativas hoje. Clique nos cabeçalhos para ordenar.</p>
+  <table id="rosterTable">
+    <thead>
+      <tr>
+        <th data-key="nome">Colaborador<span class="arrow">▾</span></th>
+        <th data-key="cargo">Cargo<span class="arrow">▾</span></th>
+        <th data-key="area">Área<span class="arrow">▾</span></th>
+        <th data-key="dias">Tempo de casa<span class="arrow">▾</span></th>
+      </tr>
+    </thead>
+    <tbody id="rosterBody"></tbody>
+  </table>
+</section>
+
+<footer>Fonte: TURNOVER_-_HEADCOUNT_2026.xlsx · dados de Set/2026 em diante são geridos neste painel</footer>
+
+<script>
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const ANO = 2026;
+const HOJE = new Date(); // data de referência para tempo de casa
+
+const AREA_COLORS = {
+  'Vendas':'var(--navy)', 'Estoque':'var(--olive)', 'Gerência':'var(--mustard)',
+  'Administrativo':'var(--clay)', 'Vendas | Gerência':'var(--teal)'
+};
+const AREA_COLOR_FALLBACK = ['var(--navy)','var(--olive)','var(--mustard)','var(--clay)','var(--teal)'];
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function todayISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+function monthIndexFromDate(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d.getTime()) || d.getFullYear() !== ANO) return null;
+  return d.getMonth();
+}
+function diasDeCasa(colab){
+  const start = new Date(colab.admissao + 'T00:00:00');
+  if(isNaN(start.getTime())) return 0;
+  const end = colab.desligamento ? new Date(colab.desligamento + 'T00:00:00') : HOJE;
+  const diff = Math.round((end - start) / 86400000);
+  return Math.max(diff, 0);
+}
+function uid(){
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+// ---------- Dados padrão (semente inicial) ----------
+function buildDefaultData(){
+  const historico = {
+    monthly: [
+      {mes:'Jan', hcFim:23, turnover:0.16, real:true},
+      {mes:'Fev', hcFim:22, turnover:0.0889, real:true},
+      {mes:'Mar', hcFim:23, turnover:0.0889, real:true},
+      {mes:'Abr', hcFim:24, turnover:0.0426, real:true},
+      {mes:'Mai', hcFim:25, turnover:0, real:true},
+      {mes:'Jun', hcFim:26, turnover:0.0392, real:true},
+      {mes:'Jul', hcFim:24, turnover:0.16, real:true},
+      {mes:'Ago', hcFim:24, turnover:0, real:true},
+    ],
+    hcInicioAno: 27,
+    admissoesAntes: 11,
+    desligamentosAntes: {empresa:7, colaborador:7}
+  };
+
+  const storeColors = { LGO:'#1f6f5c', PKS:'#b4502a', BSB:'#c99a3b', FLG:'#2b4570', MNE:'#6b7f4e' };
+
+  // linhas de lojas conhecidas (Jan-Ago) para quem tem histórico de movimentação
+  const swim = {
+    'Igor Tadeu Viana Dantas': ['PKS','PKS','LGO','LGO','LGO','LGO','LGO','LGO'],
+    'Rafaela Martins Cunha de Sá': ['LGO','FLG','FLG','FLG','FLG','FLG','FLG','FLG'],
+    'Vagner Alexandre Belletti Silva': ['BSB','LGO','LGO','LGO','BSB','BSB','BSB','BSB'],
+    'Vinícius de Assumpção Diniz': ['PKS','BSB','BSB','BSB','BSB','FLG','FLG','FLG'],
+    'Yuri Lucio Agripino dos Santos': ['PKS','PKS','PKS','PKS','PKS','PKS','PKS','PKS'],
+    'Anna Carolina dos Santos Serra': [null,null,null,'LGO','LGO','LGO','BSB','BSB'],
+    'Vitória Lamounier de Faria': [null,null,null,null,'BSB','BSB','BSB','LGO'],
+    'Yann Carmo de Oliveira': ['FLG','MNE','MNE','MNE','MNE','MNE','MNE','MNE'],
+    'Gustavo Dal-Berti': [null,null,null,null,null,null,'LGO','BSB'],
+    'Rafael Borges Rodrigues': ['FLG','FLG','FLG','FLG','FLG','FLG','FLG','FLG'],
+    'Yasmin Borges Silva': ['BSB','BSB','BSB','BSB','BSB','BSB','BSB','BSB'],
+    'Alexia Pereira Lopes': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
+    'Gabriel Araújo Rezende Costa': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
+    'Zilvan Alves de Morais': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
+    'Alexandra Andréia de Souza Vieira': [null,null,null,null,'LGO','LGO','LGO','LGO'],
+    'Eduardo De Padua Alves': [null,null,null,null,null,null,'MNE','MNE'],
+  };
+
+  const rosterSeed = [
+    {nome:'Alexandra Andréia de Souza Vieira', cargo:'Vendedor (a)', area:'Vendas', dias:105},
+    {nome:'Alexia Pereira Lopes', cargo:'Vendedor (a)', area:'Vendas', dias:150},
+    {nome:'Alleyson J. da Silva Agra', cargo:'Administrativo', area:'Administrativo', dias:1470},
+    {nome:'Anna Carolina dos Santos Serra', cargo:'Sub gerente', area:'Vendas | Gerência', dias:105},
+    {nome:'Camila Vitoria Coelho dos Santos', cargo:'Estoquista', area:'Estoque', dias:245},
+    {nome:'Carolline Stephany Neres de Oliveira', cargo:'Gerente', area:'Gerência', dias:343},
+    {nome:'Eduardo De Padua Alves', cargo:'Vendedor (a)', area:'Vendas', dias:19},
+    {nome:'Gabriel Batista Moraes', cargo:'Estoquista', area:'Estoque', dias:329},
+    {nome:'Gabriel Araújo Rezende Costa', cargo:'Sub gerente', area:'Vendas | Gerência', dias:161},
+    {nome:'Gustavo Dal-Berti', cargo:'Vendedor (a)', area:'Vendas', dias:27},
+    {nome:'Igor Tadeu Viana Dantas', cargo:'Vendedor (a) responsável', area:'Vendas', dias:418},
+    {nome:'Leonardo de Oliveira Rocha', cargo:'Estoquista', area:'Estoque', dias:644},
+    {nome:'Manuela de Oliveira Gomes', cargo:'Estoquista', area:'Estoque', dias:322},
+    {nome:'Maria Eduarda Sousa da Silva', cargo:'—', area:'—', dias:978},
+    {nome:'Rafael Borges Rodrigues', cargo:'Vendedor (a)', area:'Vendas', dias:552},
+    {nome:'Rafaela Martins Cunha de Sá', cargo:'Vendedor (a)', area:'Vendas', dias:643},
+    {nome:'Rebeca Pereira dos Santos', cargo:'Estoquista', area:'Estoque', dias:1019},
+    {nome:'Vagner Alexandre Belletti Silva', cargo:'Vendedor (a)', area:'Vendas', dias:264},
+    {nome:'Vinícius de Assumpção Diniz', cargo:'Sub gerente', area:'Vendas | Gerência', dias:392},
+    {nome:'Vitória Lamounier de Faria', cargo:'Vendedor (a)', area:'Vendas', dias:264},
+    {nome:'Yann Carmo de Oliveira', cargo:'Vendedor (a)', area:'Vendas', dias:1188},
+    {nome:'Yasmin Borges Silva', cargo:'Vendedor (a)', area:'Vendas', dias:420},
+    {nome:'Yuri Lucio Agripino dos Santos', cargo:'Vendedor (a)', area:'Vendas', dias:469},
+    {nome:'Zilvan Alves de Morais', cargo:'Vendedor (a)', area:'Vendas', dias:161},
+  ];
+
+  const msPerDay = 86400000;
+  const colaboradores = rosterSeed.map(r => {
+    const admissaoDate = new Date(HOJE.getTime() - r.dias * msPerDay);
+    const admissao = admissaoDate.toISOString().slice(0,10);
+    const lojasBase = swim[r.nome] || [null,null,null,null,null,null,null,null];
+    const lojasPorMes = lojasBase.slice(0,8);
+    // projeta Set-Dez repetindo a última loja conhecida (ajustável depois)
+    const ultima = lojasPorMes[7] || null;
+    for(let i=8;i<12;i++) lojasPorMes.push(ultima);
+    return {
+      id: uid(),
+      nome: r.nome, cargo: r.cargo, area: r.area,
+      admissao, desligamento: null, motivo: null, status: 'ativo',
+      lojasPorMes
+    };
+  });
+
+  return {
+    historico, storeColors, colaboradores,
+    config: { versao: 3 }
+  };
+}
+
+// ---------- Armazenamento (compartilhado entre todos que abrem o link) ----------
+const STORAGE_KEY = 'turnover_headcount_2026_v3';
+let DATA = null;
+let usandoStorageCompartilhado = true;
+
+async function storageGet(){
+  if(window.storage && typeof window.storage.get === 'function'){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      return res ? res.value : null;
+    }catch(e){
+      return null; // chave ainda não existe ou erro — segue com o padrão
+    }
+  }
+  usandoStorageCompartilhado = false;
+  try{ return localStorage.getItem(STORAGE_KEY); }catch(e){ return null; }
+}
+async function storageSet(value){
+  if(window.storage && typeof window.storage.set === 'function'){
+    try{
+      await window.storage.set(STORAGE_KEY, value, true);
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+  usandoStorageCompartilhado = false;
+  try{ localStorage.setItem(STORAGE_KEY, value); return true; }catch(e){ return false; }
+}
+
+async function loadData(){
+  const raw = await storageGet();
+  if(!raw){
+    DATA = buildDefaultData();
+    return;
+  }
+  try{
+    const parsed = JSON.parse(raw);
+    DATA = Object.assign(buildDefaultDataShell(), parsed);
+  }catch(e){
+    console.error('Falha ao carregar dados salvos, usando padrão.', e);
+    DATA = buildDefaultData();
+  }
+}
+function buildDefaultDataShell(){
+  // usado apenas para garantir chaves obrigatórias caso um backup antigo esteja incompleto
+  const d = buildDefaultData();
+  return { historico:d.historico, storeColors:d.storeColors, colaboradores:[], config:d.config };
+}
+
+async function persist(){
+  const ok = await storageSet(JSON.stringify(DATA));
+  updateSyncTag(ok);
+  return ok;
+}
+async function persistAndRender(){
+  renderAll();
+  await persist();
+}
+function updateSyncTag(ok){
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if(!usandoStorageCompartilhado){
+    dot.classList.add('off');
+    label.textContent = 'salvo apenas neste navegador (abra como artefato do Claude para compartilhar)';
+    return;
+  }
+  if(ok === false){
+    dot.classList.add('off');
+    label.textContent = 'falha ao sincronizar — tente novamente';
+  } else {
+    dot.classList.remove('off');
+    label.textContent = 'sincronizado para todos que abrem este link';
+  }
+}
+
+// ---------- Cálculo derivado (tudo parte de DATA.colaboradores) ----------
+function computeDerived(){
+  const hist = DATA.historico;
+  const colabs = DATA.colaboradores;
+
+  const monthly = hist.monthly.map(m => ({...m}));
+  for(let idx = 8; idx < 12; idx++){
+    const hcFim = colabs.filter(c => c.lojasPorMes[idx]).length;
+    const desligamentosMes = colabs.filter(c => monthIndexFromDate(c.desligamento) === idx).length;
+    const hcInicio = idx === 8 ? monthly[7].hcFim : monthly[idx-1].hcFim;
+    const turnover = hcInicio > 0 ? desligamentosMes / hcInicio : 0;
+    monthly.push({mes: MESES[idx], hcFim, turnover, real:false});
+  }
+
+  const ativos = colabs.filter(c => c.status === 'ativo');
+  const desligadosNovos = colabs.filter(c => c.status === 'desligado');
+
+  const headcountAtual = ativos.length;
+  const admissoesNovas = colabs.filter(c => monthIndexFromDate(c.admissao) !== null).length;
+  const admissoes2026 = hist.admissoesAntes + admissoesNovas;
+  const desligEmpresa = hist.desligamentosAntes.empresa + desligadosNovos.filter(c => c.motivo === 'empresa').length;
+  const desligColab = hist.desligamentosAntes.colaborador + desligadosNovos.filter(c => c.motivo === 'colaborador').length;
+  const desligamentos2026 = desligEmpresa + desligColab;
+
+  const turnoverMedio = monthly.reduce((s,m) => s + m.turnover, 0) / monthly.length;
+  const crescimento = hist.hcInicioAno > 0 ? (headcountAtual - hist.hcInicioAno) / hist.hcInicioAno : 0;
+  const tempoMedio = ativos.length ? Math.round(ativos.reduce((s,c) => s + diasDeCasa(c), 0) / ativos.length) : 0;
+
+  const kpis = [
+    {lbl:'Headcount atual', val:String(headcountAtual), delta:'início do ano: ' + hist.hcInicioAno, cls:'accent-teal'},
+    {lbl:'Admissões 2026', val:String(admissoes2026), delta:'ao longo do ano', cls:''},
+    {lbl:'Desligamentos 2026', val:String(desligamentos2026), delta:desligEmpresa + ' empresa · ' + desligColab + ' colaborador', cls:'accent-clay'},
+    {lbl:'Turnover médio', val:(turnoverMedio*100).toFixed(1).replace('.',',') + '%', delta:'acumulado no ano', cls:'accent-clay'},
+    {lbl:'Crescimento 2026', val:(crescimento>=0?'+':'−') + Math.abs(crescimento*100).toFixed(1).replace('.',',') + '%', delta:'headcount vs. início', cls:''},
+    {lbl:'Tempo médio de casa', val:tempoMedio + ' d', delta:'colaboradores ativos', cls:'accent-mustard'},
+  ];
+
+  const areaMap = {};
+  ativos.forEach(c => { const a = c.area || '—'; areaMap[a] = (areaMap[a]||0) + 1; });
+  let fallbackI = 0;
+  const areas = Object.entries(areaMap).sort((a,b) => b[1]-a[1]).map(([area,qtd]) => {
+    const color = AREA_COLORS[area] || AREA_COLOR_FALLBACK[(fallbackI++) % AREA_COLOR_FALLBACK.length];
+    return {area, qtd, color};
+  });
+
+  const motivo = {empresa: desligEmpresa, colaborador: desligColab};
+  const roster = ativos.map(c => ({nome:c.nome, cargo:c.cargo, area:c.area, dias:diasDeCasa(c)}))
+    .sort((a,b) => a.nome.localeCompare(b.nome));
+
+  return {monthly, kpis, areas, motivo, roster, headcountAtual, ativosCount: ativos.length, desligadosCount: desligadosNovos.length};
+}
+
+let DERIVED = null;
+let rosterSortState = {key:null, dir:1};
+
+// ---------- KPI strip ----------
+function renderKpis(){
+  const kpiWrap = document.getElementById('kpis');
+  kpiWrap.innerHTML = DERIVED.kpis.map(k => `
+    <div class="kpi ${k.cls||''}">
+      <div class="lbl">${k.lbl}</div>
+      <div class="val">${k.val}</div>
+      <div class="delta" style="color:var(--ink-soft)">${k.delta}</div>
+    </div>
+  `).join('');
+}
+
+// ---------- Evolution chart (SVG) ----------
+function renderEvoChart(){
+  const el = document.getElementById('evoChart');
+  const monthly = DERIVED.monthly;
+  const w = 760, h = 220, padL = 34, padR = 10, padT = 10, padB = 26;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const n = monthly.length;
+  const stepX = innerW / (n - 1);
+  const maxHc = Math.max(...monthly.map(d=>d.hcFim)) + 3;
+  const minHc = Math.min(...monthly.map(d=>d.hcFim)) - 3;
+  const maxTo = Math.max(0.20, ...monthly.map(d=>d.turnover));
+
+  const xFor = i => padL + stepX * i;
+  const yForHc = v => padT + innerH * (1 - (v - minHc) / (maxHc - minHc));
+  const barW = stepX * 0.42;
+
+  let bars = '';
+  monthly.forEach((d,i)=>{
+    const bh = innerH * (d.turnover / maxTo);
+    const x = xFor(i) - barW/2;
+    const y = padT + innerH - bh;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="3" fill="var(--clay)" opacity="${d.real?0.85:0.25}"></rect>`;
+  });
+
+  let linePts = monthly.map((d,i)=> `${xFor(i)},${yForHc(d.hcFim)}`).join(' ');
+  let dots = monthly.map((d,i)=> `<circle cx="${xFor(i)}" cy="${yForHc(d.hcFim)}" r="3.4" fill="${d.real?'var(--navy)':'#fff'}" stroke="var(--navy)" stroke-width="1.6"></circle>`).join('');
+
+  let labels = monthly.map((d,i)=> `<text x="${xFor(i)}" y="${h-6}" font-family="IBM Plex Mono" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${d.mes}</text>`).join('');
+
+  let gridlines = '';
+  for(let g=0; g<=2; g++){
+    const yy = padT + innerH*g/2;
+    gridlines += `<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"></line>`;
+  }
+
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;overflow:visible;">
+    ${gridlines}
+    ${bars}
+    <polyline points="${linePts}" fill="none" stroke="var(--navy)" stroke-width="2.2"></polyline>
+    ${dots}
+    ${labels}
+  </svg>`;
+}
+
+// ---------- Area breakdown ----------
+function renderAreas(){
+  const wrap = document.getElementById('areaRows');
+  const areas = DERIVED.areas;
+  if(!areas.length){ wrap.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft)">Nenhum colaborador ativo.</p>'; return; }
+  const max = Math.max(...areas.map(a=>a.qtd));
+  wrap.innerHTML = areas.map(a => `
+    <div class="area-row">
+      <div class="name">${escapeHtml(a.area)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(a.qtd/max*100).toFixed(0)}%; background:${a.color}"></div></div>
+      <div class="num">${a.qtd}</div>
+    </div>
+  `).join('');
+  document.getElementById('areasDesc').textContent = `Distribuição do quadro atual (${DERIVED.headcountAtual} pessoas).`;
+}
+
+// ---------- Motivo split ----------
+function renderMotivo(){
+  const wrap = document.getElementById('motivoSplit');
+  const emp = DERIVED.motivo.empresa, colab = DERIVED.motivo.colaborador;
+  const total = emp + colab || 1;
+  const pctEmp = (emp/total*100).toFixed(1);
+  const pctColab = (colab/total*100).toFixed(1);
+  wrap.innerHTML = `
+    <div style="width:${pctEmp}%; background:var(--clay);"></div>
+    <div style="width:${pctColab}%; background:var(--teal);"></div>
+  `;
+  document.getElementById('motivoEmpresaNum').textContent = emp;
+  document.getElementById('motivoColabNum').textContent = colab;
+  document.getElementById('motivoDesc').textContent = `${emp+colab} saídas em 2026 no total.`;
+}
+
+// ---------- Swimlane (editável) ----------
+function renderSwimlane(){
+  const wrap = document.getElementById('swimlane');
+  const storeColors = DATA.storeColors;
+  const storeKeys = Object.keys(storeColors);
+  let html = `<div class="sw-head name-head">Colaborador</div>`;
+  MESES.forEach(m => html += `<div class="sw-head">${m}</div>`);
+
+  const lista = [...DATA.colaboradores].sort((a,b) => {
+    if(a.status !== b.status) return a.status === 'ativo' ? -1 : 1;
+    return a.nome.localeCompare(b.nome);
+  });
+
+  lista.forEach(c => {
+    const actions = c.status === 'ativo'
+      ? `<button class="mini-btn" data-action="editar" data-id="${c.id}">editar</button><button class="mini-btn danger" data-action="desligar" data-id="${c.id}">desligar</button>`
+      : `<button class="mini-btn" data-action="editar" data-id="${c.id}">editar</button><button class="mini-btn ok" data-action="reativar" data-id="${c.id}">reativar</button>`;
+    const statusNote = c.status === 'desligado'
+      ? ` · <span style="color:var(--clay)">desligado (${c.motivo === 'empresa' ? 'empresa' : 'colab.'})</span>`
+      : '';
+    html += `<div class="sw-name" title="${escapeHtml(c.cargo)} · ${escapeHtml(c.area)}${statusNote}">
+      <span class="nm">${escapeHtml(c.nome)}</span>
+      <span class="row-actions">${actions}</span>
+    </div>`;
+    c.lojasPorMes.forEach((code, mi) => {
+      const prev = mi > 0 ? c.lojasPorMes[mi-1] : null;
+      const isTransfer = code && prev && code !== prev;
+      const options = ['<option value="">—</option>'].concat(
+        storeKeys.map(k => `<option value="${k}" ${code===k?'selected':''}>${k}</option>`)
+      ).join('');
+      const bg = code ? (storeColors[code] || '#999') : '#f2f3f1';
+      const fg = code ? '#fff' : 'var(--ink-soft)';
+      const titleAttr = isTransfer ? `title="Transferência: ${prev} → ${code}"` : '';
+      html += `<select class="sw-select" data-id="${c.id}" data-mes="${mi}" ${titleAttr} style="background:${bg};color:${fg};${isTransfer?'box-shadow:0 0 0 2px var(--mustard) inset;':''}">${options}</select>`;
+    });
+  });
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.sw-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const id = e.target.dataset.id;
+      const mi = parseInt(e.target.dataset.mes, 10);
+      const colab = DATA.colaboradores.find(c => c.id === id);
+      if(!colab) return;
+      colab.lojasPorMes[mi] = e.target.value || null;
+      persistAndRender();
+    });
+  });
+  wrap.querySelectorAll('[data-action="desligar"]').forEach(btn => btn.addEventListener('click', e => abrirDesligar(e.target.dataset.id)));
+  wrap.querySelectorAll('[data-action="reativar"]').forEach(btn => btn.addEventListener('click', e => reativarColaborador(e.target.dataset.id)));
+  wrap.querySelectorAll('[data-action="editar"]').forEach(btn => btn.addEventListener('click', e => abrirEditar(e.target.dataset.id)));
+
+  const legendWrap = document.getElementById('storeLegend');
+  legendWrap.innerHTML = Object.entries(storeColors).map(([k,c]) =>
+    `<span><span class="sq" style="background:${c}"></span>${k}</span>`
+  ).join('') + `<span style="color:var(--ink-soft)">Contorno em destaque = transferência de loja naquele mês.</span>`;
+
+  // datalist de áreas conhecidas, para os formulários
+  const areaList = document.getElementById('areaList');
+  const areasConhecidas = Array.from(new Set(DATA.colaboradores.map(c => c.area).filter(Boolean)));
+  areaList.innerHTML = areasConhecidas.map(a => `<option value="${escapeHtml(a)}"></option>`).join('');
+}
+
+// ---------- Roster table ----------
+function renderRosterBody(list){
+  const body = document.getElementById('rosterBody');
+  const maxDias = Math.max(1, ...DERIVED.roster.map(r=>r.dias));
+  body.innerHTML = list.map(r => `
+    <tr>
+      <td>${escapeHtml(r.nome)}</td>
+      <td>${escapeHtml(r.cargo)}</td>
+      <td><span class="tag" style="background:var(--navy-soft); color:var(--navy)">${escapeHtml(r.area)}</span></td>
+      <td><span class="tenure-bar"><span class="tenure-fill" style="width:${(r.dias/maxDias*100).toFixed(0)}%"></span></span><span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">${r.dias} d</span></td>
+    </tr>
+  `).join('');
+}
+function renderRoster(){
+  rosterSortState = {key:null, dir:1};
+  renderRosterBody(DERIVED.roster);
+  document.getElementById('rosterDesc').textContent = `${DERIVED.roster.length} pessoas ativas hoje. Clique nos cabeçalhos para ordenar.`;
+}
+document.querySelectorAll('#rosterTable thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    rosterSortState.dir = (rosterSortState.key === key) ? -rosterSortState.dir : 1;
+    rosterSortState.key = key;
+    const sorted = [...DERIVED.roster].sort((a,b) => {
+      if(typeof a[key] === 'number') return (a[key]-b[key]) * rosterSortState.dir;
+      return a[key].localeCompare(b[key]) * rosterSortState.dir;
+    });
+    renderRosterBody(sorted);
+  });
+});
+
+function renderAll(){
+  DERIVED = computeDerived();
+  renderKpis();
+  renderEvoChart();
+  renderAreas();
+  renderMotivo();
+  renderSwimlane();
+  renderRoster();
+}
+
+// ================= Novo colaborador =================
+const novoOverlay = document.getElementById('novoOverlay');
+document.getElementById('openNovoBtn').addEventListener('click', () => {
+  document.getElementById('novoNome').value = '';
+  document.getElementById('novoCargo').value = '';
+  document.getElementById('novoArea').value = '';
+  document.getElementById('novoAdmissao').value = todayISO();
+  const lojaSel = document.getElementById('novoLoja');
+  lojaSel.innerHTML = Object.keys(DATA.storeColors).map(k => `<option value="${k}">${k}</option>`).join('');
+  document.getElementById('novoMsg').textContent = '';
+  novoOverlay.classList.add('open');
+});
+document.getElementById('cancelarNovoBtn').addEventListener('click', () => novoOverlay.classList.remove('open'));
+novoOverlay.addEventListener('click', e => { if(e.target === novoOverlay) novoOverlay.classList.remove('open'); });
+
+document.getElementById('salvarNovoBtn').addEventListener('click', () => {
+  const nome = document.getElementById('novoNome').value.trim();
+  const cargo = document.getElementById('novoCargo').value.trim() || '—';
+  const area = document.getElementById('novoArea').value.trim() || '—';
+  const admissao = document.getElementById('novoAdmissao').value;
+  const loja = document.getElementById('novoLoja').value;
+  const msg = document.getElementById('novoMsg');
+  if(!nome){ msg.textContent = 'Informe o nome do colaborador.'; msg.className = 'modal-msg err'; return; }
+  if(!admissao){ msg.textContent = 'Informe a data de admissão.'; msg.className = 'modal-msg err'; return; }
+
+  const mi = monthIndexFromDate(admissao);
+  const lojasPorMes = Array(12).fill(null);
+  if(mi !== null){ for(let i = mi; i < 12; i++) lojasPorMes[i] = loja; }
+
+  DATA.colaboradores.push({
+    id: uid(), nome, cargo, area,
+    admissao, desligamento: null, motivo: null, status: 'ativo',
+    lojasPorMes
+  });
+  novoOverlay.classList.remove('open');
+  persistAndRender();
+});
+
+// ================= Editar colaborador =================
+const editarOverlay = document.getElementById('editarOverlay');
+let editandoId = null;
+function abrirEditar(id){
+  const c = DATA.colaboradores.find(x => x.id === id);
+  if(!c) return;
+  editandoId = id;
+  document.getElementById('editNome').value = c.nome;
+  document.getElementById('editCargo').value = c.cargo;
+  document.getElementById('editArea').value = c.area;
+  document.getElementById('editAdmissao').value = c.admissao;
+  document.getElementById('editMsg').textContent = '';
+  editarOverlay.classList.add('open');
+}
+document.getElementById('cancelarEditBtn').addEventListener('click', () => editarOverlay.classList.remove('open'));
+editarOverlay.addEventListener('click', e => { if(e.target === editarOverlay) editarOverlay.classList.remove('open'); });
+
+document.getElementById('salvarEditBtn').addEventListener('click', () => {
+  const c = DATA.colaboradores.find(x => x.id === editandoId);
+  if(!c) return;
+  const nome = document.getElementById('editNome').value.trim();
+  const msg = document.getElementById('editMsg');
+  if(!nome){ msg.textContent = 'Informe o nome do colaborador.'; msg.className = 'modal-msg err'; return; }
+  c.nome = nome;
+  c.cargo = document.getElementById('editCargo').value.trim() || '—';
+  c.area = document.getElementById('editArea').value.trim() || '—';
+  const novaAdmissao = document.getElementById('editAdmissao').value;
+  if(novaAdmissao) c.admissao = novaAdmissao;
+  editarOverlay.classList.remove('open');
+  persistAndRender();
+});
+document.getElementById('excluirBtn').addEventListener('click', () => {
+  const c = DATA.colaboradores.find(x => x.id === editandoId);
+  if(!c) return;
+  if(!confirm(`Excluir "${c.nome}" permanentemente? Isso remove todo o histórico dele do painel — não é a mesma coisa que desligar.`)) return;
+  DATA.colaboradores = DATA.colaboradores.filter(x => x.id !== editandoId);
+  editarOverlay.classList.remove('open');
+  persistAndRender();
+});
+
+// ================= Desligar / Reativar =================
+const desligarOverlay = document.getElementById('desligarOverlay');
+let desligandoId = null;
+function abrirDesligar(id){
+  const c = DATA.colaboradores.find(x => x.id === id);
+  if(!c) return;
+  desligandoId = id;
+  document.getElementById('desligarNomeHint').textContent = `Colaborador: ${c.nome}`;
+  document.getElementById('desligarData').value = todayISO();
+  document.querySelector('input[name="motivoDeslig"][value="empresa"]').checked = true;
+  desligarOverlay.classList.add('open');
+}
+document.getElementById('cancelarDesligarBtn').addEventListener('click', () => desligarOverlay.classList.remove('open'));
+desligarOverlay.addEventListener('click', e => { if(e.target === desligarOverlay) desligarOverlay.classList.remove('open'); });
+
+document.getElementById('confirmarDesligarBtn').addEventListener('click', () => {
+  const c = DATA.colaboradores.find(x => x.id === desligandoId);
+  if(!c) return;
+  const data = document.getElementById('desligarData').value || todayISO();
+  const motivo = document.querySelector('input[name="motivoDeslig"]:checked').value;
+  c.status = 'desligado';
+  c.motivo = motivo;
+  c.desligamento = data;
+  const mi = monthIndexFromDate(data);
+  if(mi !== null){ for(let i = mi + 1; i < 12; i++) c.lojasPorMes[i] = null; }
+  desligarOverlay.classList.remove('open');
+  persistAndRender();
+});
+function reativarColaborador(id){
+  const c = DATA.colaboradores.find(x => x.id === id);
+  if(!c) return;
+  if(!confirm(`Reativar "${c.nome}"? O status volta para ativo.`)) return;
+  c.status = 'ativo';
+  c.motivo = null;
+  c.desligamento = null;
+  persistAndRender();
+}
+
+// ================= Backup / edição avançada (JSON) =================
+const overlay = document.getElementById('editOverlay');
+const textarea = document.getElementById('dataTextarea');
+const modalMsg = document.getElementById('modalMsg');
+
+function openEditor(){
+  textarea.value = JSON.stringify(DATA, null, 2);
+  modalMsg.textContent = '';
+  modalMsg.className = 'modal-msg';
+  document.getElementById('storageNote').textContent = usandoStorageCompartilhado
+    ? 'Os dados ficam salvos e sincronizados para qualquer pessoa que abrir este link. Use "Baixar backup" de vez em quando para ter uma cópia de segurança.'
+    : 'Este arquivo está aberto fora do ambiente de artefatos do Claude, então os dados ficam salvos apenas neste navegador. Para compartilhar as edições com quem mais acessa o link, abra pelo link de artefato do Claude.';
+  overlay.classList.add('open');
+}
+document.getElementById('openJsonBtn').addEventListener('click', openEditor);
+document.getElementById('cancelEditBtn').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.classList.remove('open'); });
+
+document.getElementById('saveDataBtn').addEventListener('click', () => {
+  let parsed;
+  try{ parsed = JSON.parse(textarea.value); }
+  catch(e){ modalMsg.textContent = 'JSON inválido: ' + e.message; modalMsg.className = 'modal-msg err'; return; }
+  const required = ['historico','storeColors','colaboradores'];
+  const missing = required.filter(k => !(k in parsed));
+  if(missing.length){
+    modalMsg.textContent = 'Faltam campos obrigatórios: ' + missing.join(', ');
+    modalMsg.className = 'modal-msg err';
+    return;
+  }
+  DATA = Object.assign({}, DATA, parsed);
+  persistAndRender();
+  modalMsg.textContent = 'Dados salvos e atualizados com sucesso.';
+  modalMsg.className = 'modal-msg ok';
+  setTimeout(() => overlay.classList.remove('open'), 900);
+});
+
+document.getElementById('resetDataBtn').addEventListener('click', () => {
+  if(!confirm('Isso vai apagar as alterações salvas e voltar aos dados originais da planilha, para todos que acessam este link. Continuar?')) return;
+  DATA = buildDefaultData();
+  persistAndRender();
+  textarea.value = JSON.stringify(DATA, null, 2);
+  modalMsg.textContent = 'Dados restaurados para o padrão original.';
+  modalMsg.className = 'modal-msg ok';
+});
+
+document.getElementById('downloadBackupBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'backup-dashboard-turnover-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('uploadBackupBtn').addEventListener('click', () => {
+  document.getElementById('uploadBackupInput').click();
+});
+document.getElementById('uploadBackupInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      textarea.value = JSON.stringify(parsed, null, 2);
+      modalMsg.textContent = 'Backup carregado no campo abaixo. Clique em "Salvar alterações" para aplicar.';
+      modalMsg.className = 'modal-msg ok';
+      overlay.classList.add('open');
+    }catch(err){
+      modalMsg.textContent = 'Arquivo inválido: ' + err.message;
+      modalMsg.className = 'modal-msg err';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ================= Inicialização =================
+(async function init(){
+  await loadData();
+  renderAll();
+  updateSyncTag(true);
+  document.getElementById('loadingVeil').style.display = 'none';
+})();
+</script>
+
+</body>
+</html>
