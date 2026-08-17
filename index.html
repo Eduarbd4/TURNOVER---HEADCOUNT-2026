@@ -447,7 +447,7 @@
   <div>
     <div class="eyebrow">RH · Pessoas &amp; Operações</div>
     <h1>Turnover &amp; Headcount</h1>
-    <p class="sub">Panorama de admissões, desligamentos e movimentação entre lojas da rede ao longo de 2026. Edite colaboradores e lojas diretamente abaixo — as mudanças ficam salvas para qualquer pessoa que abrir este link.</p>
+    <p class="sub">Visão executiva da evolução do quadro, admissões, desligamentos, permanência e movimentações entre lojas. Os dados são centralizados, atualizados em tempo real e preparados para apoiar decisões da gestão de pessoas.</p>
   </div>
   <div class="edit-toolbar">
     <div class="sync-tag" id="syncTag"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">sincronizado</span></div>
@@ -692,6 +692,11 @@ function tempoCasaTexto(totalDias){
   if(dias||!partes.length)partes.push(`${dias} ${dias===1?'dia':'dias'}`);
   return partes.length>1?partes.slice(0,-1).join(', ')+' e '+partes.at(-1):partes[0];
 }
+function tempoCasaResumo(totalDias){
+  const total=Math.max(0,Math.round(Number(totalDias)||0)),anos=Math.floor(total/365),meses=Math.floor((total%365)/30),dias=(total%365)%30;
+  const principal=[anos?`${anos} ${anos===1?'ano':'anos'}`:'',meses?`${meses} ${meses===1?'mês':'meses'}`:''].filter(Boolean).join(' e ')||`${dias} ${dias===1?'dia':'dias'}`;
+  return{principal,detalhe:(anos||meses)?`${dias} ${dias===1?'dia adicional':'dias adicionais'} · média dos ativos`:'média dos colaboradores ativos'};
+}
 function uid(){
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
@@ -912,7 +917,7 @@ function computeDerived(){
     {lbl:'Desligamentos 2026', val:String(desligamentos2026), delta:desligEmpresa + ' empresa · ' + desligColab + ' colaborador', cls:'accent-clay'},
     {lbl:'Turnover médio', val:(turnoverMedio*100).toFixed(1).replace('.',',') + '%', delta:'acumulado no ano', cls:'accent-clay'},
     {lbl:'Crescimento 2026', val:(crescimento>=0?'+':'−') + Math.abs(crescimento*100).toFixed(1).replace('.',',') + '%', delta:'headcount vs. início', cls:''},
-    {lbl:'Tempo médio de casa', val:tempoCasaTexto(tempoMedio), delta:'colaboradores ativos', cls:'accent-mustard'},
+    {lbl:'Tempo médio de casa', val:tempoCasaResumo(tempoMedio).principal, delta:tempoCasaResumo(tempoMedio).detalhe, cls:'accent-mustard'},
   ];
 
   const areaMap = {};
