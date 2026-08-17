@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --bg: #eef1ee;
@@ -424,6 +427,16 @@
     font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); font-size:13px;
     z-index:200;
   }
+  body:not(.admin-mode) #openJsonBtn,body:not(.admin-mode) #openNovoBtn,body:not(.admin-mode) #quickAddBtn{display:none}
+  .access-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#fff}
+  .auth-error{min-height:18px;color:var(--clay);font:11px 'IBM Plex Mono',monospace;margin-top:8px}
+  .readonly-note{font:11px 'IBM Plex Mono',monospace;color:var(--ink-soft)}
+  .filter-bar{display:grid;grid-template-columns:1.25fr repeat(4,1fr) auto auto;gap:10px;align-items:end;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;margin-bottom:18px;box-shadow:0 6px 22px rgba(25,42,35,.045)}
+  .filter-field{display:grid;gap:6px}.filter-field label{font:10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}.filter-field input,.filter-field select{min-width:0;width:100%;height:38px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px 9px;color:var(--ink)}
+  .scroll-y{max-height:430px;overflow:auto;scrollbar-width:thin;scrollbar-color:#aab8ae #eef1ee}.scroll-y::-webkit-scrollbar{width:7px;height:7px}.scroll-y::-webkit-scrollbar-thumb{background:#aab8ae;border-radius:8px}.swimlane-wrap{max-height:610px;overflow:auto}.area-rows{max-height:260px;overflow:auto;padding-right:5px}.table-scroll{max-height:520px;overflow:auto}.table-scroll thead th{position:sticky;top:0;background:var(--paper);z-index:2}
+  .insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.insight-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px}.insight-card .title{font:10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}.insight-card p{font-size:13px;line-height:1.6;margin:9px 0 0}.insight-card.risk{border-left:4px solid var(--clay)}.insight-card.good{border-left:4px solid var(--teal)}.insight-card.watch{border-left:4px solid var(--mustard)}
+  @media(max-width:1100px){.filter-bar{grid-template-columns:repeat(3,1fr)}.insight-grid{grid-template-columns:1fr}}
+  @media(max-width:700px){.filter-bar{grid-template-columns:1fr}.filter-bar .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -439,9 +452,35 @@
   <div class="edit-toolbar">
     <div class="sync-tag" id="syncTag"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">sincronizado</span></div>
     <div class="period-tag">Período <b>Jan</b> – <b>Dez/2026</b> · real até Ago · Set–Dez projetado</div>
+    <span class="access-badge" id="accessBadge">Visualização pública</span>
+    <button class="edit-btn" id="quickAddBtn" type="button">+ Adicionar colaborador</button>
+    <button class="edit-btn" id="pdfBtn" type="button">Baixar relatório PDF</button>
+    <button class="edit-btn secondary" id="loginBtn" type="button">Área administrativa</button>
+    <button class="edit-btn secondary" id="logoutBtn" type="button" style="display:none">Sair</button>
     <button class="edit-btn secondary" id="openJsonBtn" type="button">⚙ Backup / avançado</button>
   </div>
 </header>
+
+<section class="filter-bar" aria-label="Filtros do dashboard">
+  <div class="filter-field"><label>Colaborador</label><input type="search" id="filterEmployee" placeholder="Nome do colaborador"></div>
+  <div class="filter-field"><label>Data inicial</label><input type="date" id="filterFrom" value="2026-01-01"></div>
+  <div class="filter-field"><label>Data final</label><input type="date" id="filterTo" value="2026-12-31"></div>
+  <div class="filter-field"><label>Status</label><select id="filterStatus"><option value="">Todos</option><option value="ativo">Ativos</option><option value="desligado">Desligados</option></select></div>
+  <div class="filter-field"><label>Área</label><select id="filterArea"><option value="">Todas as áreas</option></select></div>
+  <button class="btn primary" id="applyFiltersBtn" type="button">Aplicar filtros</button>
+  <button class="btn ghost" id="clearFiltersBtn" type="button">Limpar</button>
+</section>
+
+<div class="modal-overlay" id="loginOverlay">
+  <form class="modal narrow" id="loginForm">
+    <h3>Acesso administrativo</h3>
+    <p class="hint">Entre com um usuário autorizado no Supabase. A visualização do painel continua pública.</p>
+    <div class="field"><label>E-mail</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+    <div class="field"><label>Senha</label><input type="password" id="loginPassword" autocomplete="current-password" required></div>
+    <div class="modal-actions"><button class="btn primary" type="submit">Entrar</button><button class="btn ghost" id="cancelLoginBtn" type="button">Cancelar</button></div>
+    <div class="auth-error" id="loginError"></div>
+  </form>
+</div>
 
 <!-- ================= MODAL: backup / JSON avançado ================= -->
 <div class="modal-overlay" id="editOverlay">
@@ -526,6 +565,8 @@
 
 <section class="kpis" id="kpis"></section>
 
+<section class="insight-grid" id="insightGrid"></section>
+
 <section class="grid">
   <div class="panel">
     <h2>Evolução mensal</h2>
@@ -540,7 +581,7 @@
   <div class="panel">
     <h2>Colaboradores ativos por área</h2>
     <p class="desc" id="areasDesc">Distribuição do quadro atual.</p>
-    <div class="area-rows" id="areaRows"></div>
+    <div class="area-rows scroll-y" id="areaRows"></div>
 
     <hr class="divider">
 
@@ -573,25 +614,42 @@
 <section class="panel">
   <h2>Quadro de colaboradores ativos</h2>
   <p class="desc" id="rosterDesc">Pessoas ativas hoje. Clique nos cabeçalhos para ordenar.</p>
-  <table id="rosterTable">
+  <div class="table-scroll scroll-y"><table id="rosterTable">
     <thead>
       <tr>
         <th data-key="nome">Colaborador<span class="arrow">▾</span></th>
         <th data-key="cargo">Cargo<span class="arrow">▾</span></th>
         <th data-key="area">Área<span class="arrow">▾</span></th>
+        <th data-key="admissao">Admissão<span class="arrow">▾</span></th>
         <th data-key="dias">Tempo de casa<span class="arrow">▾</span></th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody id="rosterBody"></tbody>
-  </table>
+  </table></div>
+</section>
+
+<section class="panel" style="margin-top:16px">
+  <div class="panel-head"><div><h2>Colaboradores inativos</h2><p class="desc" id="inactiveDesc">Registros identificados na aba Base de Dados Completa.</p></div></div>
+  <div class="table-scroll scroll-y"><table id="inactiveTable">
+    <thead><tr><th>Colaborador</th><th>Cargo</th><th>Área</th><th>Admissão</th><th>Desligamento</th><th>Tempo de casa</th><th>Origem do desligamento</th><th>Ações</th></tr></thead>
+    <tbody id="inactiveBody"></tbody>
+  </table></div>
 </section>
 
 <footer>Fonte: TURNOVER_-_HEADCOUNT_2026.xlsx · dados de Set/2026 em diante são geridos neste painel</footer>
 
 <script>
+/* Use somente a chave PUBLICÁVEL do Supabase. Nunca use sb_secret_ ou service_role. */
+const SUPABASE_URL='https://tohgvkvkvajqxhtvbija.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_ZLue4j1oo6ULkFIWVhkwNQ_iLkQHgah';
+const CLOUD_TABLE='turnover_dashboard_state';
+const CLOUD_WORKSPACE='turnover-headcount-2026';
+let cloudDb=null,adminSession=null,cloudChannel=null;
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO = 2026;
 const HOJE = new Date(); // data de referência para tempo de casa
+let FILTERS={employee:'',from:'2026-01-01',to:'2026-12-31',status:'',area:''};
 
 const AREA_COLORS = {
   'Vendas':'var(--navy)', 'Estoque':'var(--olive)', 'Gerência':'var(--mustard)',
@@ -601,6 +659,14 @@ const AREA_COLOR_FALLBACK = ['var(--navy)','var(--olive)','var(--mustard)','var(
 
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+function filteredCollaborators(){
+  const q=normalizeText(FILTERS.employee),from=FILTERS.from||'0000-01-01',to=FILTERS.to||'9999-12-31';
+  return DATA.colaboradores.filter(c=>{
+    const admission=c.admissao||'0000-01-01',dismissal=c.desligamento||'9999-12-31';
+    return(!q||normalizeText([c.nome,c.cargo,c.area].join(' ')).includes(q))&&(!FILTERS.status||c.status===FILTERS.status)&&(!FILTERS.area||c.area===FILTERS.area)&&admission<=to&&dismissal>=from;
+  });
 }
 function todayISO(){
   const d = new Date();
@@ -621,6 +687,17 @@ function diasDeCasa(colab){
 }
 function uid(){
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+const PLANILHA_INATIVOS=[{"nome":"Alessandro Alves de Mesquita","cargo":"Não informado","area":"Não informada","admissao":"2022-08-29","desligamento":null,"motivo":null},{"nome":"Alex Gabriel da Silva Martins","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-11-03","desligamento":"2026-01-31","motivo":"empresa"},{"nome":"Aline Emanuelle Rêgo de Oliveira","cargo":"Não informado","area":"Não informada","admissao":"2024-11-11","desligamento":null,"motivo":null},{"nome":"Alinny Oliveira Alves","cargo":"Não informado","area":"Não informada","admissao":"2023-09-12","desligamento":null,"motivo":null},{"nome":"Amanda Cavalcanti de Lira Silva","cargo":"Não informado","area":"Não informada","admissao":"2024-05-01","desligamento":null,"motivo":null},{"nome":"Ana Júlia Cavalcante de Melo","cargo":"Não informado","area":"Não informada","admissao":"2024-04-30","desligamento":null,"motivo":null},{"nome":"Ana Lúcia Alves Carvalho","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-11-30","desligamento":"2025-12-29","motivo":"empresa"},{"nome":"Andre Haniel Fernandes Sena","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-06-16","desligamento":null,"motivo":null},{"nome":"Andre Pereira Borges","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Andre Rangel Barbosa","cargo":"Não informado","area":"Não informada","admissao":"2023-11-13","desligamento":null,"motivo":null},{"nome":"André Iuri Fernandes Carrijo","cargo":"Não informado","area":"Não informada","admissao":"2024-02-28","desligamento":null,"motivo":null},{"nome":"Arrilson Gabriel De Sousa Vasconcelos","cargo":"Não informado","area":"Não informada","admissao":"2023-11-21","desligamento":null,"motivo":null},{"nome":"Arthur Silva Amaral","cargo":"Não informado","area":"Não informada","admissao":"2023-10-16","desligamento":null,"motivo":null},{"nome":"Ayane Kamille Silva Santos","cargo":"Não informado","area":"Não informada","admissao":"2023-11-07","desligamento":null,"motivo":null},{"nome":"BIANCA LAUANE RANGEL DA SILVA","cargo":"Não informado","area":"Não informada","admissao":"2024-11-11","desligamento":null,"motivo":null},{"nome":"Bruno José Gomes de Amorim","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Caio César silva de carvalho","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-08-07","desligamento":"2025-09-20","motivo":"empresa"},{"nome":"Caio Gonçalves de Luna Chagas","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-11-30","desligamento":"2025-12-29","motivo":"empresa"},{"nome":"Carlos Eduardo Cardoso Aires","cargo":"Não informado","area":"Não informada","admissao":"2023-06-27","desligamento":null,"motivo":null},{"nome":"Carlos Henrique Macedo Dantas Siqueira","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-06-19","desligamento":"2026-04-10","motivo":"empresa"},{"nome":"Caroline Papini Cardoso","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Clayssiane Barroso de Souza","cargo":"Não informado","area":"Não informada","admissao":"2023-06-14","desligamento":null,"motivo":null},{"nome":"Crisshelen Sá Menezes Sathler","cargo":"Não informado","area":"Não informada","admissao":"2024-04-30","desligamento":null,"motivo":null},{"nome":"Danielle Alves Frois","cargo":"Não informado","area":"Não informada","admissao":"2019-04-01","desligamento":null,"motivo":null},{"nome":"David Igor Souza Bezerra","cargo":"Não informado","area":"Não informada","admissao":"2024-07-22","desligamento":null,"motivo":null},{"nome":"Eduarda de Godois Thomazi","cargo":"Não informado","area":"Não informada","admissao":"2023-02-10","desligamento":null,"motivo":null},{"nome":"Eduardo Alves de Oliveira","cargo":"Não informado","area":"Não informada","admissao":"2023-11-21","desligamento":null,"motivo":null},{"nome":"Eduardo Pádua Garcia","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-11-30","desligamento":"2026-07-07","motivo":"colaborador"},{"nome":"Enzo Pessoa Caetano","cargo":"Não informado","area":"Não informada","admissao":"2023-11-17","desligamento":null,"motivo":null},{"nome":"Enzo Roberto Fernandes Montenegro","cargo":"Operador de caixa","area":"Caixa","admissao":"2025-11-19","desligamento":"2025-11-30","motivo":"colaborador"},{"nome":"Fernanda Thamires Abreu Nery","cargo":"Não informado","area":"Não informada","admissao":"2024-02-07","desligamento":null,"motivo":null},{"nome":"Flávio Henrique Herval de Castro","cargo":"Não informado","area":"Não informada","admissao":"2023-07-03","desligamento":null,"motivo":null},{"nome":"Francielton Ricard da Silva Nascimento","cargo":"Vendedor (a) responsavel","area":"Vendas","admissao":"2026-05-25","desligamento":"2026-07-08","motivo":"empresa"},{"nome":"Francisco Luhan Tavares Rocha","cargo":"Não informado","area":"Não informada","admissao":"2022-11-28","desligamento":null,"motivo":null},{"nome":"Frederico Sanchotene Alcalde","cargo":"Não informado","area":"Não informada","admissao":"2024-11-11","desligamento":null,"motivo":null},{"nome":"Fábio Augusto Luis Rodrigues Bezerra","cargo":"Não informado","area":"Não informada","admissao":"2023-10-30","desligamento":null,"motivo":null},{"nome":"Gabriel Bragança Sernegio","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-06-17","desligamento":"2025-12-24","motivo":"colaborador"},{"nome":"Gabriela Cândida Leite","cargo":"Não informado","area":"Não informada","admissao":"2024-11-04","desligamento":null,"motivo":null},{"nome":"Gabriela Pereira Alves de Faria","cargo":"Estoquista","area":"Estoque","admissao":"2025-08-05","desligamento":"2025-09-18","motivo":"empresa"},{"nome":"Giovanna Kuroiwa Sales","cargo":"Não informado","area":"Não informada","admissao":"2021-11-20","desligamento":null,"motivo":null},{"nome":"Guilherme de Sousa Brasilino","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Gustavo Henryck de Sousa Mobile","cargo":"Vendedor (a)","area":"Vendas","admissao":"2026-06-17","desligamento":"2026-07-31","motivo":"empresa"},{"nome":"Jacireny pereira de Brito","cargo":"Não informado","area":"Não informada","admissao":"2022-08-12","desligamento":null,"motivo":null},{"nome":"Jeyslon hitallo da Silva de Jesus","cargo":"Não informado","area":"Não informada","admissao":"2023-04-17","desligamento":null,"motivo":null},{"nome":"Jonatas Micael Lessa Campos","cargo":"Estoquista","area":"Estoque","admissao":"2025-06-16","desligamento":"2025-07-31","motivo":"empresa"},{"nome":"Jonathan Gonçalves Dias","cargo":"Não informado","area":"Não informada","admissao":"2023-07-25","desligamento":null,"motivo":null},{"nome":"Josemírya Rodrigues da Silva","cargo":"Não informado","area":"Não informada","admissao":"2022-08-15","desligamento":null,"motivo":null},{"nome":"Joyce Ramos Araújo","cargo":"Não informado","area":"Não informada","admissao":"2024-01-12","desligamento":null,"motivo":null},{"nome":"João Estélio Nóbrega de Araújo","cargo":"Não informado","area":"Não informada","admissao":"2024-06-24","desligamento":null,"motivo":null},{"nome":"João Pedro Alves da Silva","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Jéssica Cristina Pereira dos Santos","cargo":"Não informado","area":"Não informada","admissao":"2023-03-23","desligamento":null,"motivo":null},{"nome":"Júllia Barbosa Cavalcanti","cargo":"Não informado","area":"Não informada","admissao":"2023-01-30","desligamento":null,"motivo":null},{"nome":"Kaio Henrique Costa Alvares Maloney e Silva","cargo":"Não informado","area":"Não informada","admissao":"2022-10-17","desligamento":null,"motivo":null},{"nome":"Kevin krishna luz do Amaral","cargo":"Não informado","area":"Não informada","admissao":"2023-02-23","desligamento":null,"motivo":null},{"nome":"LUCAS VICTOR FERREIRA DE ARAUJO SILVA","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-09-19","desligamento":"2026-01-31","motivo":"empresa"},{"nome":"Larissa Eleutério Mesquita Maia","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-02-03","desligamento":"2025-05-04","motivo":"empresa"},{"nome":"Letícia Viotti Moreira","cargo":"Não informado","area":"Não informada","admissao":"2023-03-29","desligamento":null,"motivo":null},{"nome":"Lucas Tiburtino da silva","cargo":"Vendedor (a) responsavel","area":"Vendas","admissao":"2025-02-03","desligamento":"2025-03-19","motivo":"empresa"},{"nome":"Lucas pinho santos Xavier","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-03-21","desligamento":"2025-06-18","motivo":"empresa"},{"nome":"Lívia Santos Lucena","cargo":"Operador de caixa","area":"Caixa","admissao":"2025-12-11","desligamento":"2026-01-09","motivo":"colaborador"},{"nome":"MARIA EDUARDA NUNES DIAS","cargo":"Vendedor (a) responsavel","area":"Vendas","admissao":"2025-08-18","desligamento":"2026-06-07","motivo":"colaborador"},{"nome":"Marcelo Santos de Araujo","cargo":"Não informado","area":"Não informada","admissao":"2023-12-06","desligamento":null,"motivo":null},{"nome":"Maria Aduane Fernandes de Souza","cargo":"Não informado","area":"Não informada","admissao":"2023-11-13","desligamento":null,"motivo":null},{"nome":"Maria Eduarda Guimarães Rabelo","cargo":"Não informado","area":"Não informada","admissao":"2024-11-20","desligamento":null,"motivo":null},{"nome":"Maria Eduarda Rufino de Araújo Silva","cargo":"Não informado","area":"Não informada","admissao":"2023-11-10","desligamento":null,"motivo":null},{"nome":"Maria Eduarda de Paula Borges Carvalho","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-02-04","desligamento":"2026-02-01","motivo":"colaborador"},{"nome":"Maria Paulista Raye Puppi","cargo":"Não informado","area":"Não informada","admissao":"2023-01-02","desligamento":null,"motivo":null},{"nome":"Marina Florencio de Abreu","cargo":"Não informado","area":"Não informada","admissao":"2023-09-12","desligamento":null,"motivo":null},{"nome":"Matheus Santo Sousa","cargo":"Não informado","area":"Não informada","admissao":"2024-11-11","desligamento":null,"motivo":null},{"nome":"Matheus de Salles Camilo","cargo":"Não informado","area":"Não informada","admissao":"2024-06-24","desligamento":null,"motivo":null},{"nome":"Matheus do Carmo Leandro","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-12-01","desligamento":"2026-02-28","motivo":"empresa"},{"nome":"Mielle Ramira de Souza Dias","cargo":"Não informado","area":"Não informada","admissao":"2020-10-21","desligamento":null,"motivo":null},{"nome":"Nicole Andrade Pimentel","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-10-03","desligamento":"2025-10-11","motivo":"colaborador"},{"nome":"PHELLIPE RAYNER PINTO MARQUES DA SILVEIRA","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-04-28","desligamento":"2025-05-28","motivo":"empresa"},{"nome":"Paola Bernardes Beltrão Mendes Pires","cargo":"Não informado","area":"Não informada","admissao":"2024-11-04","desligamento":null,"motivo":null},{"nome":"Paula Cristina Melo Xavier","cargo":"Não informado","area":"Não informada","admissao":"2021-12-01","desligamento":null,"motivo":null},{"nome":"Paulo Henrique Nicacio Arestides","cargo":"Vendedor (a)","area":"Vendas","admissao":"2026-02-26","desligamento":"2026-03-26","motivo":"colaborador"},{"nome":"Pedro Augusto de Oliveira Suderio Medeiros","cargo":"Não informado","area":"Não informada","admissao":"2024-10-07","desligamento":null,"motivo":null},{"nome":"Pedro Henrique Ramos da Silva","cargo":"Não informado","area":"Não informada","admissao":"2023-11-10","desligamento":null,"motivo":null},{"nome":"Rafael Alves Ximenes","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-06-04","desligamento":"2025-09-01","motivo":"empresa"},{"nome":"Rafael Borges","cargo":"Não informado","area":"Não informada","admissao":"2022-09-12","desligamento":null,"motivo":null},{"nome":"Rafael Brisolla Meira","cargo":"Não informado","area":"Não informada","admissao":"2024-11-11","desligamento":null,"motivo":null},{"nome":"Renata Gomes Da Silva","cargo":"Vendedor (a)","area":"Vendas","admissao":"2025-09-22","desligamento":"2026-03-13","motivo":"empresa"},{"nome":"Roberta Bispo Costa","cargo":"Não informado","area":"Não informada","admissao":"2024-12-19","desligamento":null,"motivo":null},{"nome":"Rodrigo Pessoa de Andrade","cargo":"Vendedor (a)","area":"Vendas","admissao":"2026-06-17","desligamento":"2026-07-21","motivo":"colaborador"},{"nome":"Sally Chedid","cargo":"Não informado","area":"Não informada","admissao":"2023-08-25","desligamento":null,"motivo":null},{"nome":"Sarah Oliveira santos","cargo":"Não informado","area":"Não informada","admissao":"2024-11-27","desligamento":null,"motivo":null},{"nome":"Thayane de lima Sousa","cargo":"Não informado","area":"Não informada","admissao":"2023-02-13","desligamento":null,"motivo":null},{"nome":"Verônica Lana da Silva Macedo","cargo":"Gerente","area":"Gerencia","admissao":"2025-09-01","desligamento":"2026-01-09","motivo":"colaborador"},{"nome":"Victor fidelis vianna","cargo":"Não informado","area":"Não informada","admissao":"2024-03-21","desligamento":null,"motivo":null},{"nome":"Wanessa Quixaba de Macedo","cargo":"Não informado","area":"Não informada","admissao":"2023-11-07","desligamento":null,"motivo":null},{"nome":"Wermesson Santana Lopes da Silva","cargo":"Não informado","area":"Não informada","admissao":"2024-10-03","desligamento":null,"motivo":null},{"nome":"lia raquel cardoso santos","cargo":"Não informado","area":"Não informada","admissao":"2023-07-31","desligamento":null,"motivo":null},{"nome":"ÁLVARO TOLÊDO CAMPOS","cargo":"Não informado","area":"Não informada","admissao":"2024-06-03","desligamento":null,"motivo":null}];
+function mergeSpreadsheetInactives(list){
+  const result=[...(list||[])],known=new Set(result.map(c=>normalizeText(c.nome)));
+  PLANILHA_INATIVOS.forEach((r,index)=>{
+    if(known.has(normalizeText(r.nome)))return;
+    result.push({id:'planilha-inativo-'+index,nome:r.nome,cargo:r.cargo,area:r.area,admissao:r.admissao||'',desligamento:r.desligamento,motivo:r.motivo,status:'desligado',lojasPorMes:Array(12).fill(null),origem:'Base de Dados Completa'});
+    known.add(normalizeText(r.nome));
+  });
+  return result;
 }
 
 // ---------- Dados padrão (semente inicial) ----------
@@ -708,39 +785,37 @@ function buildDefaultData(){
   });
 
   return {
-    historico, storeColors, colaboradores,
-    config: { versao: 3 }
+    historico, storeColors, colaboradores:mergeSpreadsheetInactives(colaboradores),
+    config: { versao: 4, inativosPlanilha:PLANILHA_INATIVOS.length }
   };
 }
 
 // ---------- Armazenamento (compartilhado entre todos que abrem o link) ----------
 const STORAGE_KEY = 'turnover_headcount_2026_v3';
 let DATA = null;
-let usandoStorageCompartilhado = true;
+let usandoStorageCompartilhado = false;
 
 async function storageGet(){
-  if(window.storage && typeof window.storage.get === 'function'){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      return res ? res.value : null;
-    }catch(e){
-      return null; // chave ainda não existe ou erro — segue com o padrão
+  if(cloudDb){
+    const {data,error}=await cloudDb.from(CLOUD_TABLE).select('payload').eq('id',CLOUD_WORKSPACE).maybeSingle();
+    if(!error){
+      usandoStorageCompartilhado=true;
+      return data?.payload ? JSON.stringify(data.payload) : null;
     }
+    console.error('Falha ao carregar dados compartilhados.',error);
   }
-  usandoStorageCompartilhado = false;
   try{ return localStorage.getItem(STORAGE_KEY); }catch(e){ return null; }
 }
 async function storageSet(value){
-  if(window.storage && typeof window.storage.set === 'function'){
-    try{
-      await window.storage.set(STORAGE_KEY, value, true);
-      return true;
-    }catch(e){
-      return false;
-    }
+  if(!adminSession)return false;
+  if(cloudDb){
+    const payload=JSON.parse(value);
+    const {error}=await cloudDb.from(CLOUD_TABLE).upsert({id:CLOUD_WORKSPACE,payload,updated_at:new Date().toISOString(),updated_by:adminSession.user.id},{onConflict:'id'});
+    if(!error){usandoStorageCompartilhado=true;return true}
+    console.error('Falha ao salvar dados compartilhados.',error);
+    return false;
   }
-  usandoStorageCompartilhado = false;
-  try{ localStorage.setItem(STORAGE_KEY, value); return true; }catch(e){ return false; }
+  return false;
 }
 
 async function loadData(){
@@ -752,6 +827,7 @@ async function loadData(){
   try{
     const parsed = JSON.parse(raw);
     DATA = Object.assign(buildDefaultDataShell(), parsed);
+    DATA.colaboradores=mergeSpreadsheetInactives(DATA.colaboradores);
   }catch(e){
     console.error('Falha ao carregar dados salvos, usando padrão.', e);
     DATA = buildDefaultData();
@@ -777,7 +853,7 @@ function updateSyncTag(ok){
   const label = document.getElementById('syncLabel');
   if(!usandoStorageCompartilhado){
     dot.classList.add('off');
-    label.textContent = 'salvo apenas neste navegador (abra como artefato do Claude para compartilhar)';
+    label.textContent = 'modo local — confira a configuração do Supabase';
     return;
   }
   if(ok === false){
@@ -785,35 +861,41 @@ function updateSyncTag(ok){
     label.textContent = 'falha ao sincronizar — tente novamente';
   } else {
     dot.classList.remove('off');
-    label.textContent = 'sincronizado para todos que abrem este link';
+    label.textContent = 'sincronizado para todos com o link';
   }
 }
 
 // ---------- Cálculo derivado (tudo parte de DATA.colaboradores) ----------
 function computeDerived(){
   const hist = DATA.historico;
-  const colabs = DATA.colaboradores;
+  const colabs = filteredCollaborators();
+  const fullScope=!FILTERS.employee&&!FILTERS.status&&!FILTERS.area&&FILTERS.from==='2026-01-01'&&FILTERS.to==='2026-12-31';
 
-  const monthly = hist.monthly.map(m => ({...m}));
-  for(let idx = 8; idx < 12; idx++){
-    const hcFim = colabs.filter(c => c.lojasPorMes[idx]).length;
-    const desligamentosMes = colabs.filter(c => monthIndexFromDate(c.desligamento) === idx).length;
-    const hcInicio = idx === 8 ? monthly[7].hcFim : monthly[idx-1].hcFim;
-    const turnover = hcInicio > 0 ? desligamentosMes / hcInicio : 0;
-    monthly.push({mes: MESES[idx], hcFim, turnover, real:false});
+  let monthly;
+  if(fullScope){
+    monthly=hist.monthly.map(m=>({...m}));
+    for(let idx=8;idx<12;idx++){
+      const hcFim=colabs.filter(c=>c.lojasPorMes[idx]).length,desligamentosMes=colabs.filter(c=>monthIndexFromDate(c.desligamento)===idx).length,hcInicio=idx===8?monthly[7].hcFim:monthly[idx-1].hcFim;
+      monthly.push({mes:MESES[idx],hcFim,turnover:hcInicio>0?desligamentosMes/hcInicio:0,real:false});
+    }
+  }else{
+    monthly=MESES.map((mes,idx)=>{const hcFim=colabs.filter(c=>c.lojasPorMes[idx]).length,hcInicio=idx===0?colabs.filter(c=>c.admissao<'2026-01-01'&&(!c.desligamento||c.desligamento>='2026-01-01')).length:colabs.filter(c=>c.lojasPorMes[idx-1]).length,exits=colabs.filter(c=>monthIndexFromDate(c.desligamento)===idx).length;return{mes,hcFim,turnover:hcInicio?exits/hcInicio:0,real:idx<8}});
   }
 
-  const ativos = colabs.filter(c => c.status === 'ativo');
-  const desligadosNovos = colabs.filter(c => c.status === 'desligado');
+  const referenceDate=FILTERS.to||todayISO();
+  const ativos = colabs.filter(c => c.status==='ativo'&&(c.admissao||'0000-01-01')<=referenceDate&&(!c.desligamento||c.desligamento>referenceDate));
+  const desligadosNovos = colabs.filter(c => c.desligamento&&c.desligamento>=FILTERS.from&&c.desligamento<=FILTERS.to);
 
   const headcountAtual = ativos.length;
-  const admissoesNovas = colabs.filter(c => monthIndexFromDate(c.admissao) !== null).length;
-  const admissoes2026 = hist.admissoesAntes + admissoesNovas;
-  const desligEmpresa = hist.desligamentosAntes.empresa + desligadosNovos.filter(c => c.motivo === 'empresa').length;
-  const desligColab = hist.desligamentosAntes.colaborador + desligadosNovos.filter(c => c.motivo === 'colaborador').length;
+  const admissoesNovas = colabs.filter(c => c.admissao&&c.admissao>=FILTERS.from&&c.admissao<=FILTERS.to).length;
+  const admissoes2026 = admissoesNovas;
+  const desligEmpresa = desligadosNovos.filter(c => c.motivo === 'empresa').length;
+  const desligColab = desligadosNovos.filter(c => c.motivo === 'colaborador').length;
   const desligamentos2026 = desligEmpresa + desligColab;
 
-  const turnoverMedio = monthly.reduce((s,m) => s + m.turnover, 0) / monthly.length;
+  const fromMonth=FILTERS.from?.startsWith('2026-')?Number(FILTERS.from.slice(5,7))-1:0,toMonth=FILTERS.to?.startsWith('2026-')?Number(FILTERS.to.slice(5,7))-1:11;
+  const monthlyScoped=monthly.filter((m,i)=>i>=fromMonth&&i<=toMonth);
+  const turnoverMedio = monthlyScoped.length?monthlyScoped.reduce((s,m) => s + m.turnover, 0) / monthlyScoped.length:0;
   const crescimento = hist.hcInicioAno > 0 ? (headcountAtual - hist.hcInicioAno) / hist.hcInicioAno : 0;
   const tempoMedio = ativos.length ? Math.round(ativos.reduce((s,c) => s + diasDeCasa(c), 0) / ativos.length) : 0;
 
@@ -835,10 +917,10 @@ function computeDerived(){
   });
 
   const motivo = {empresa: desligEmpresa, colaborador: desligColab};
-  const roster = ativos.map(c => ({nome:c.nome, cargo:c.cargo, area:c.area, dias:diasDeCasa(c)}))
+  const roster = ativos.map(c => ({id:c.id,nome:c.nome,cargo:c.cargo,area:c.area,admissao:c.admissao,dias:diasDeCasa(c)}))
     .sort((a,b) => a.nome.localeCompare(b.nome));
 
-  return {monthly, kpis, areas, motivo, roster, headcountAtual, ativosCount: ativos.length, desligadosCount: desligadosNovos.length};
+  return {monthly:monthlyScoped, kpis, areas, motivo, roster, headcountAtual, ativosCount: ativos.length, desligadosCount: desligadosNovos.length,colabs,admissoes2026,desligamentos2026,desligEmpresa,desligColab,turnoverMedio,tempoMedio};
 }
 
 let DERIVED = null;
@@ -863,9 +945,9 @@ function renderEvoChart(){
   const w = 760, h = 220, padL = 34, padR = 10, padT = 10, padB = 26;
   const innerW = w - padL - padR, innerH = h - padT - padB;
   const n = monthly.length;
-  const stepX = innerW / (n - 1);
-  const maxHc = Math.max(...monthly.map(d=>d.hcFim)) + 3;
-  const minHc = Math.min(...monthly.map(d=>d.hcFim)) - 3;
+  const stepX = n>1 ? innerW / (n - 1) : 0;
+  const maxHc = Math.max(1,...monthly.map(d=>d.hcFim)) + 3;
+  const minHc = Math.max(0,Math.min(...monthly.map(d=>d.hcFim)) - 3);
   const maxTo = Math.max(0.20, ...monthly.map(d=>d.turnover));
 
   const xFor = i => padL + stepX * i;
@@ -940,13 +1022,13 @@ function renderSwimlane(){
   let html = `<div class="sw-head name-head">Colaborador</div>`;
   MESES.forEach(m => html += `<div class="sw-head">${m}</div>`);
 
-  const lista = [...DATA.colaboradores].sort((a,b) => {
+  const lista = [...filteredCollaborators()].sort((a,b) => {
     if(a.status !== b.status) return a.status === 'ativo' ? -1 : 1;
     return a.nome.localeCompare(b.nome);
   });
 
   lista.forEach(c => {
-    const actions = c.status === 'ativo'
+    const actions = !adminSession ? '' : c.status === 'ativo'
       ? `<button class="mini-btn" data-action="editar" data-id="${c.id}">editar</button><button class="mini-btn danger" data-action="desligar" data-id="${c.id}">desligar</button>`
       : `<button class="mini-btn" data-action="editar" data-id="${c.id}">editar</button><button class="mini-btn ok" data-action="reativar" data-id="${c.id}">reativar</button>`;
     const statusNote = c.status === 'desligado'
@@ -965,13 +1047,14 @@ function renderSwimlane(){
       const bg = code ? (storeColors[code] || '#999') : '#f2f3f1';
       const fg = code ? '#fff' : 'var(--ink-soft)';
       const titleAttr = isTransfer ? `title="Transferência: ${prev} → ${code}"` : '';
-      html += `<select class="sw-select" data-id="${c.id}" data-mes="${mi}" ${titleAttr} style="background:${bg};color:${fg};${isTransfer?'box-shadow:0 0 0 2px var(--mustard) inset;':''}">${options}</select>`;
+      html += `<select class="sw-select" data-id="${c.id}" data-mes="${mi}" ${titleAttr} ${adminSession?'':'disabled'} style="background:${bg};color:${fg};${isTransfer?'box-shadow:0 0 0 2px var(--mustard) inset;':''}">${options}</select>`;
     });
   });
   wrap.innerHTML = html;
 
   wrap.querySelectorAll('.sw-select').forEach(sel => {
     sel.addEventListener('change', (e) => {
+      if(!adminSession)return;
       const id = e.target.dataset.id;
       const mi = parseInt(e.target.dataset.mes, 10);
       const colab = DATA.colaboradores.find(c => c.id === id);
@@ -1004,14 +1087,25 @@ function renderRosterBody(list){
       <td>${escapeHtml(r.nome)}</td>
       <td>${escapeHtml(r.cargo)}</td>
       <td><span class="tag" style="background:var(--navy-soft); color:var(--navy)">${escapeHtml(r.area)}</span></td>
+      <td>${r.admissao?new Date(r.admissao+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td>
       <td><span class="tenure-bar"><span class="tenure-fill" style="width:${(r.dias/maxDias*100).toFixed(0)}%"></span></span><span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">${r.dias} d</span></td>
+      <td>${adminSession?`<button class="mini-btn" data-roster-edit="${r.id}">editar</button><button class="mini-btn danger" data-roster-dismiss="${r.id}">desligar</button>`:'Somente leitura'}</td>
     </tr>
   `).join('');
+  body.querySelectorAll('[data-roster-edit]').forEach(b=>b.addEventListener('click',()=>abrirEditar(b.dataset.rosterEdit)));
+  body.querySelectorAll('[data-roster-dismiss]').forEach(b=>b.addEventListener('click',()=>abrirDesligar(b.dataset.rosterDismiss)));
 }
 function renderRoster(){
   rosterSortState = {key:null, dir:1};
   renderRosterBody(DERIVED.roster);
   document.getElementById('rosterDesc').textContent = `${DERIVED.roster.length} pessoas ativas hoje. Clique nos cabeçalhos para ordenar.`;
+}
+function renderInactives(){
+  const rows=DERIVED.colabs.filter(c=>c.status==='desligado').sort((a,b)=>(b.desligamento||'').localeCompare(a.desligamento||'')||a.nome.localeCompare(b.nome));
+  document.getElementById('inactiveDesc').textContent=`${rows.length} colaboradores inativos no recorte. ${rows.filter(c=>!c.desligamento).length} registros da planilha não possuem data de desligamento informada.`;
+  document.getElementById('inactiveBody').innerHTML=rows.map(c=>`<tr><td><b>${escapeHtml(c.nome)}</b></td><td>${escapeHtml(c.cargo||'Não informado')}</td><td>${escapeHtml(c.area||'Não informada')}</td><td>${c.admissao?new Date(c.admissao+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.desligamento?new Date(c.desligamento+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.admissao&&c.desligamento?diasDeCasa(c)+' dias':'Não calculável'}</td><td><span class="tag" style="background:${c.motivo==='empresa'?'var(--clay-soft)':c.motivo==='colaborador'?'var(--teal-soft)':'var(--navy-soft)'};color:${c.motivo==='empresa'?'var(--clay)':c.motivo==='colaborador'?'var(--teal)':'var(--navy)'}">${c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'Não informado'}</span></td><td>${adminSession?`<button class="mini-btn" data-inactive-edit="${c.id}">editar</button><button class="mini-btn ok" data-inactive-reactivate="${c.id}">reativar</button>`:'Somente leitura'}</td></tr>`).join('')||'<tr><td colspan="8">Nenhum inativo corresponde aos filtros.</td></tr>';
+  document.querySelectorAll('[data-inactive-edit]').forEach(b=>b.addEventListener('click',()=>abrirEditar(b.dataset.inactiveEdit)));
+  document.querySelectorAll('[data-inactive-reactivate]').forEach(b=>b.addEventListener('click',()=>reativarColaborador(b.dataset.inactiveReactivate)));
 }
 document.querySelectorAll('#rosterTable thead th').forEach(th => {
   th.addEventListener('click', () => {
@@ -1026,19 +1120,34 @@ document.querySelectorAll('#rosterTable thead th').forEach(th => {
   });
 });
 
+function renderInsights(){
+  const totalExit=DERIVED.desligamentos2026||0,companyShare=totalExit?DERIVED.desligEmpresa/totalExit*100:0,largest=DERIVED.areas[0],turnover=DERIVED.turnoverMedio*100;
+  document.getElementById('insightGrid').innerHTML=`
+    <article class="insight-card ${turnover>8?'risk':'good'}"><div class="title">Risco de rotatividade</div><p>${turnover>8?`O turnover médio de <b>${turnover.toFixed(1).replace('.',',')}%</b> requer acompanhamento das causas e das áreas mais afetadas.`:`O turnover médio de <b>${turnover.toFixed(1).replace('.',',')}%</b> permanece em nível controlado no recorte selecionado.`}</p></article>
+    <article class="insight-card watch"><div class="title">Perfil dos desligamentos</div><p>${totalExit?`Foram registrados <b>${totalExit}</b> desligamentos; <b>${companyShare.toFixed(1).replace('.',',')}%</b> ocorreram por iniciativa da empresa.`:'Não há desligamentos registrados no recorte atual.'}</p></article>
+    <article class="insight-card good"><div class="title">Composição do quadro</div><p>${largest?`A maior área é <b>${escapeHtml(largest.area)}</b>, com <b>${largest.qtd}</b> colaboradores ativos. O quadro filtrado possui ${DERIVED.headcountAtual} pessoas ativas.`:'Nenhum colaborador ativo corresponde aos filtros aplicados.'}</p></article>`;
+}
+function refreshFilterOptions(){
+  const select=document.getElementById('filterArea'),current=FILTERS.area,areas=[...new Set(DATA.colaboradores.map(c=>c.area).filter(Boolean))].sort();
+  select.innerHTML='<option value="">Todas as áreas</option>'+areas.map(a=>`<option value="${escapeHtml(a)}" ${a===current?'selected':''}>${escapeHtml(a)}</option>`).join('');
+}
+
 function renderAll(){
   DERIVED = computeDerived();
+  refreshFilterOptions();
   renderKpis();
+  renderInsights();
   renderEvoChart();
   renderAreas();
   renderMotivo();
   renderSwimlane();
   renderRoster();
+  renderInactives();
 }
 
 // ================= Novo colaborador =================
 const novoOverlay = document.getElementById('novoOverlay');
-document.getElementById('openNovoBtn').addEventListener('click', () => {
+function openNewEmployeeModal(){
   document.getElementById('novoNome').value = '';
   document.getElementById('novoCargo').value = '';
   document.getElementById('novoArea').value = '';
@@ -1047,7 +1156,9 @@ document.getElementById('openNovoBtn').addEventListener('click', () => {
   lojaSel.innerHTML = Object.keys(DATA.storeColors).map(k => `<option value="${k}">${k}</option>`).join('');
   document.getElementById('novoMsg').textContent = '';
   novoOverlay.classList.add('open');
-});
+}
+document.getElementById('openNovoBtn').addEventListener('click',openNewEmployeeModal);
+document.getElementById('quickAddBtn').addEventListener('click',openNewEmployeeModal);
 document.getElementById('cancelarNovoBtn').addEventListener('click', () => novoOverlay.classList.remove('open'));
 novoOverlay.addEventListener('click', e => { if(e.target === novoOverlay) novoOverlay.classList.remove('open'); });
 
@@ -1232,11 +1343,78 @@ document.getElementById('uploadBackupInput').addEventListener('change', (e) => {
   e.target.value = '';
 });
 
+// ================= Filtros e relatório executivo =================
+function applyFilters(){
+  FILTERS={employee:document.getElementById('filterEmployee').value.trim(),from:document.getElementById('filterFrom').value||'2026-01-01',to:document.getElementById('filterTo').value||'2026-12-31',status:document.getElementById('filterStatus').value,area:document.getElementById('filterArea').value};
+  if(FILTERS.from>FILTERS.to){alert('A data inicial não pode ser posterior à data final.');return}
+  renderAll();
+}
+document.getElementById('applyFiltersBtn').addEventListener('click',applyFilters);
+let filterTimer;
+document.getElementById('filterEmployee').addEventListener('input',()=>{clearTimeout(filterTimer);filterTimer=setTimeout(applyFilters,250)});
+['filterFrom','filterTo','filterStatus','filterArea'].forEach(id=>document.getElementById(id).addEventListener('change',applyFilters));
+document.getElementById('clearFiltersBtn').addEventListener('click',()=>{
+  FILTERS={employee:'',from:'2026-01-01',to:'2026-12-31',status:'',area:''};
+  document.getElementById('filterEmployee').value='';document.getElementById('filterFrom').value=FILTERS.from;document.getElementById('filterTo').value=FILTERS.to;document.getElementById('filterStatus').value='';document.getElementById('filterArea').value='';renderAll();
+});
+function downloadHRPDF(){
+  if(!window.jspdf?.jsPDF)return alert('O gerador de PDF não foi carregado. Atualize a página e tente novamente.');
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'}),W=210,H=297,left=17,right=17,navy=[43,69,112],teal=[31,111,92],clay=[180,80,42];
+  const clean=v=>String(v??'').replace(/[\u2013\u2014]/g,'-');
+  const header=()=>{doc.setFillColor(...navy);doc.rect(0,0,W,15,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('RELATORIO EXECUTIVO DE PESSOAS E OPERACOES',left,10)};
+  const section=(n,title,y)=>{if(y>264){doc.addPage();header();y=25}doc.setTextColor(...navy);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(`${n}. ${clean(title).toUpperCase()}`,left,y);doc.setDrawColor(...teal);doc.line(left,y+2,W-right,y+2);return y+9};
+  const para=(text,y)=>{const lines=doc.splitTextToSize(clean(text),W-left-right);if(y+lines.length*4.2>275){doc.addPage();header();y=25}doc.setTextColor(45,52,48);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(lines,left,y,{lineHeightFactor:1.45});return y+lines.length*4.2+4};
+  header();doc.setFillColor(239,243,247);doc.rect(0,15,W,88,'F');doc.setTextColor(...navy);doc.setFont('helvetica','bold');doc.setFontSize(21);doc.text('TURNOVER & HEADCOUNT',left,43);doc.setFontSize(14);doc.text('RELATORIO EXECUTIVO - 2026',left,56);doc.setTextColor(...teal);doc.setFontSize(10);doc.text(`${clean(FILTERS.from)} a ${clean(FILTERS.to)}`,left,70);doc.setTextColor(90,98,94);doc.setFont('helvetica','normal');doc.text(`Emitido em ${new Date().toLocaleString('pt-BR')}`,left,83);doc.text(`Filtros: colaborador ${FILTERS.employee||'todos'} | status ${FILTERS.status||'todos'} | area ${FILTERS.area||'todas'}`,left,90);
+  let y=119;y=section('1','Resumo dos indicadores',y);doc.autoTable({startY:y,margin:{left,right},head:[['Indicador','Resultado']],body:DERIVED.kpis.map(k=>[clean(k.lbl),clean(k.val+' - '+k.delta)]),headStyles:{fillColor:navy,textColor:255},styles:{fontSize:8.5,cellPadding:3},alternateRowStyles:{fillColor:[247,249,248]}});y=doc.lastAutoTable.finalY+9;
+  y=section('2','Análise gerencial',y);const largest=DERIVED.areas[0],totalExit=DERIVED.desligamentos2026||0;y=para(`O quadro filtrado apresenta ${DERIVED.headcountAtual} colaboradores ativos, ${DERIVED.admissoes2026} admissões e ${totalExit} desligamentos. O turnover médio é de ${(DERIVED.turnoverMedio*100).toFixed(1).replace('.',',')}%. ${largest?`A maior concentração está na área ${largest.area}, com ${largest.qtd} pessoas.`:'Não há colaboradores ativos no recorte.'}`,y);y=para(`Dos desligamentos registrados, ${DERIVED.desligEmpresa} ocorreram por iniciativa da empresa e ${DERIVED.desligColab} por iniciativa do colaborador. Recomenda-se acompanhar mensalmente as causas, o tempo de reposição, a concentração por área e as transferências entre lojas.`,y);
+  doc.addPage();header();y=25;y=section('3','Evolução mensal',y);doc.autoTable({startY:y,margin:{left,right},head:[['Mês','Headcount final','Turnover','Classificação']],body:DERIVED.monthly.map(m=>[m.mes,String(m.hcFim),(m.turnover*100).toFixed(1).replace('.',',')+'%',m.real?'Real':'Projetado']),headStyles:{fillColor:navy,textColor:255},styles:{fontSize:8,cellPadding:2.7}});y=doc.lastAutoTable.finalY+9;
+  y=section('4','Distribuição por área',y);doc.autoTable({startY:y,margin:{left,right},head:[['Área','Colaboradores','Participação']],body:DERIVED.areas.map(a=>[clean(a.area),String(a.qtd),(DERIVED.headcountAtual?a.qtd/DERIVED.headcountAtual*100:0).toFixed(1).replace('.',',')+'%']),headStyles:{fillColor:teal,textColor:255},styles:{fontSize:8,cellPadding:2.7}});y=doc.lastAutoTable.finalY+9;
+  y=section('5','Desligamentos',y);doc.autoTable({startY:y,margin:{left,right},head:[['Origem','Quantidade']],body:[['Por parte da empresa',String(DERIVED.desligEmpresa)],['Por parte do colaborador',String(DERIVED.desligColab)],['Total',String(totalExit)]],headStyles:{fillColor:clay,textColor:255},styles:{fontSize:8,cellPadding:2.7}});
+  doc.addPage();header();y=25;y=section('6','Quadro de colaboradores do recorte',y);doc.autoTable({startY:y,margin:{left:8,right:8},head:[['Colaborador','Cargo','Área','Admissão','Desligamento','Dias','Status','Motivo']],body:DERIVED.colabs.map(c=>[clean(c.nome),clean(c.cargo),clean(c.area),clean(c.admissao||'-'),clean(c.desligamento||'-'),c.admissao&&(c.status==='ativo'||c.desligamento)?String(diasDeCasa(c)):'-',c.status==='ativo'?'Ativo':'Desligado',c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'-']),headStyles:{fillColor:navy,textColor:255},styles:{fontSize:6.6,cellPadding:1.8,overflow:'linebreak'}});
+  const pages=doc.getNumberOfPages();for(let p=1;p<=pages;p++){doc.setPage(p);doc.setDrawColor(215,220,217);doc.line(left,H-13,W-right,H-13);doc.setTextColor(100,107,103);doc.setFontSize(7);doc.text('Turnover & Headcount 2026',left,H-8);doc.text(`Pagina ${p} de ${pages}`,W-right,H-8,{align:'right'})}
+  doc.save(`relatorio-turnover-headcount-${new Date().toISOString().slice(0,10)}.pdf`);
+}
+document.getElementById('pdfBtn').addEventListener('click',downloadHRPDF);
+
+// ================= Acesso administrativo e atualização em tempo real =================
+function adminUI(){
+  const on=!!adminSession;
+  document.body.classList.toggle('admin-mode',on);
+  document.getElementById('loginBtn').style.display=on?'none':'';
+  document.getElementById('logoutBtn').style.display=on?'':'none';
+  document.getElementById('accessBadge').textContent=on?'Administrador conectado':'Visualização pública';
+  if(DATA)renderAll();
+}
+function subscribeCloud(){
+  if(!cloudDb)return;
+  if(cloudChannel)cloudDb.removeChannel(cloudChannel);
+  cloudChannel=cloudDb.channel('turnover-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:CLOUD_TABLE,filter:'id=eq.'+CLOUD_WORKSPACE},async()=>{await loadData();renderAll();updateSyncTag(true)}).subscribe();
+}
+const loginOverlay=document.getElementById('loginOverlay');
+document.getElementById('loginBtn').addEventListener('click',()=>{document.getElementById('loginError').textContent='';loginOverlay.classList.add('open')});
+document.getElementById('cancelLoginBtn').addEventListener('click',()=>loginOverlay.classList.remove('open'));
+loginOverlay.addEventListener('click',e=>{if(e.target===loginOverlay)loginOverlay.classList.remove('open')});
+document.getElementById('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const errorBox=document.getElementById('loginError');errorBox.textContent='Entrando…';
+  const {data,error}=await cloudDb.auth.signInWithPassword({email:document.getElementById('loginEmail').value,password:document.getElementById('loginPassword').value});
+  if(error){errorBox.textContent='E-mail ou senha inválidos.';return}
+  adminSession=data.session;loginOverlay.classList.remove('open');adminUI();updateSyncTag(true);
+});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{await cloudDb.auth.signOut();adminSession=null;adminUI()});
+
 // ================= Inicialização =================
 (async function init(){
+  try{
+    cloudDb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data}=await cloudDb.auth.getSession();
+    adminSession=data.session;
+  }catch(e){console.error('Falha ao iniciar Supabase.',e)}
   await loadData();
   renderAll();
-  updateSyncTag(true);
+  adminUI();
+  updateSyncTag(usandoStorageCompartilhado);
+  subscribeCloud();
   document.getElementById('loadingVeil').style.display = 'none';
 })();
 </script>
