@@ -599,7 +599,7 @@
   <div class="panel-head">
     <div>
       <h2>Mapa de movimentação entre lojas</h2>
-      <p class="desc">Cada linha é um colaborador (ativo ou desligado). Escolha a loja de cada mês pelo menu suspenso — mudar de loja de um mês para o outro é registrado automaticamente como transferência. Células "—" indicam fora da empresa naquele mês.</p>
+      <p class="desc">Exibe somente colaboradores com cargo de vendedor. Escolha a loja de cada mês pelo menu suspenso — mudar de loja de um mês para o outro é registrado automaticamente como transferência. Células "—" indicam fora da empresa naquele mês.</p>
     </div>
     <div class="edit-toolbar">
       <button class="edit-btn" id="openNovoBtn" type="button">+ Novo colaborador</button>
@@ -684,6 +684,13 @@ function diasDeCasa(colab){
   const end = colab.desligamento ? new Date(colab.desligamento + 'T00:00:00') : HOJE;
   const diff = Math.round((end - start) / 86400000);
   return Math.max(diff, 0);
+}
+function tempoCasaTexto(totalDias){
+  const total=Math.max(0,Math.round(Number(totalDias)||0)),anos=Math.floor(total/365),resto=total%365,meses=Math.floor(resto/30),dias=resto%30,partes=[];
+  if(anos)partes.push(`${anos} ${anos===1?'ano':'anos'}`);
+  if(meses)partes.push(`${meses} ${meses===1?'mês':'meses'}`);
+  if(dias||!partes.length)partes.push(`${dias} ${dias===1?'dia':'dias'}`);
+  return partes.length>1?partes.slice(0,-1).join(', ')+' e '+partes.at(-1):partes[0];
 }
 function uid(){
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -905,7 +912,7 @@ function computeDerived(){
     {lbl:'Desligamentos 2026', val:String(desligamentos2026), delta:desligEmpresa + ' empresa · ' + desligColab + ' colaborador', cls:'accent-clay'},
     {lbl:'Turnover médio', val:(turnoverMedio*100).toFixed(1).replace('.',',') + '%', delta:'acumulado no ano', cls:'accent-clay'},
     {lbl:'Crescimento 2026', val:(crescimento>=0?'+':'−') + Math.abs(crescimento*100).toFixed(1).replace('.',',') + '%', delta:'headcount vs. início', cls:''},
-    {lbl:'Tempo médio de casa', val:tempoMedio + ' d', delta:'colaboradores ativos', cls:'accent-mustard'},
+    {lbl:'Tempo médio de casa', val:tempoCasaTexto(tempoMedio), delta:'colaboradores ativos', cls:'accent-mustard'},
   ];
 
   const areaMap = {};
@@ -1022,7 +1029,7 @@ function renderSwimlane(){
   let html = `<div class="sw-head name-head">Colaborador</div>`;
   MESES.forEach(m => html += `<div class="sw-head">${m}</div>`);
 
-  const lista = [...filteredCollaborators()].sort((a,b) => {
+  const lista = [...filteredCollaborators()].filter(c=>normalizeText(c.cargo).includes('vendedor')).sort((a,b) => {
     if(a.status !== b.status) return a.status === 'ativo' ? -1 : 1;
     return a.nome.localeCompare(b.nome);
   });
@@ -1088,7 +1095,7 @@ function renderRosterBody(list){
       <td>${escapeHtml(r.cargo)}</td>
       <td><span class="tag" style="background:var(--navy-soft); color:var(--navy)">${escapeHtml(r.area)}</span></td>
       <td>${r.admissao?new Date(r.admissao+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td>
-      <td><span class="tenure-bar"><span class="tenure-fill" style="width:${(r.dias/maxDias*100).toFixed(0)}%"></span></span><span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">${r.dias} d</span></td>
+      <td><span class="tenure-bar"><span class="tenure-fill" style="width:${(r.dias/maxDias*100).toFixed(0)}%"></span></span><span style="font-family:'IBM Plex Mono',monospace; font-size:11px;">${tempoCasaTexto(r.dias)}</span></td>
       <td>${adminSession?`<button class="mini-btn" data-roster-edit="${r.id}">editar</button><button class="mini-btn danger" data-roster-dismiss="${r.id}">desligar</button>`:'Somente leitura'}</td>
     </tr>
   `).join('');
@@ -1103,7 +1110,7 @@ function renderRoster(){
 function renderInactives(){
   const rows=DERIVED.colabs.filter(c=>c.status==='desligado').sort((a,b)=>(b.desligamento||'').localeCompare(a.desligamento||'')||a.nome.localeCompare(b.nome));
   document.getElementById('inactiveDesc').textContent=`${rows.length} colaboradores inativos no recorte. ${rows.filter(c=>!c.desligamento).length} registros da planilha não possuem data de desligamento informada.`;
-  document.getElementById('inactiveBody').innerHTML=rows.map(c=>`<tr><td><b>${escapeHtml(c.nome)}</b></td><td>${escapeHtml(c.cargo||'Não informado')}</td><td>${escapeHtml(c.area||'Não informada')}</td><td>${c.admissao?new Date(c.admissao+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.desligamento?new Date(c.desligamento+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.admissao&&c.desligamento?diasDeCasa(c)+' dias':'Não calculável'}</td><td><span class="tag" style="background:${c.motivo==='empresa'?'var(--clay-soft)':c.motivo==='colaborador'?'var(--teal-soft)':'var(--navy-soft)'};color:${c.motivo==='empresa'?'var(--clay)':c.motivo==='colaborador'?'var(--teal)':'var(--navy)'}">${c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'Não informado'}</span></td><td>${adminSession?`<button class="mini-btn" data-inactive-edit="${c.id}">editar</button><button class="mini-btn ok" data-inactive-reactivate="${c.id}">reativar</button>`:'Somente leitura'}</td></tr>`).join('')||'<tr><td colspan="8">Nenhum inativo corresponde aos filtros.</td></tr>';
+  document.getElementById('inactiveBody').innerHTML=rows.map(c=>`<tr><td><b>${escapeHtml(c.nome)}</b></td><td>${escapeHtml(c.cargo||'Não informado')}</td><td>${escapeHtml(c.area||'Não informada')}</td><td>${c.admissao?new Date(c.admissao+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.desligamento?new Date(c.desligamento+'T00:00:00').toLocaleDateString('pt-BR'):'Não informada'}</td><td>${c.admissao&&c.desligamento?tempoCasaTexto(diasDeCasa(c)):'Não calculável'}</td><td><span class="tag" style="background:${c.motivo==='empresa'?'var(--clay-soft)':c.motivo==='colaborador'?'var(--teal-soft)':'var(--navy-soft)'};color:${c.motivo==='empresa'?'var(--clay)':c.motivo==='colaborador'?'var(--teal)':'var(--navy)'}">${c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'Não informado'}</span></td><td>${adminSession?`<button class="mini-btn" data-inactive-edit="${c.id}">editar</button><button class="mini-btn ok" data-inactive-reactivate="${c.id}">reativar</button>`:'Somente leitura'}</td></tr>`).join('')||'<tr><td colspan="8">Nenhum inativo corresponde aos filtros.</td></tr>';
   document.querySelectorAll('[data-inactive-edit]').forEach(b=>b.addEventListener('click',()=>abrirEditar(b.dataset.inactiveEdit)));
   document.querySelectorAll('[data-inactive-reactivate]').forEach(b=>b.addEventListener('click',()=>reativarColaborador(b.dataset.inactiveReactivate)));
 }
@@ -1374,7 +1381,41 @@ function downloadHRPDF(){
   const pages=doc.getNumberOfPages();for(let p=1;p<=pages;p++){doc.setPage(p);doc.setDrawColor(215,220,217);doc.line(left,H-13,W-right,H-13);doc.setTextColor(100,107,103);doc.setFontSize(7);doc.text('Turnover & Headcount 2026',left,H-8);doc.text(`Pagina ${p} de ${pages}`,W-right,H-8,{align:'right'})}
   doc.save(`relatorio-turnover-headcount-${new Date().toISOString().slice(0,10)}.pdf`);
 }
-document.getElementById('pdfBtn').addEventListener('click',downloadHRPDF);
+function downloadHRPDFPremium(){
+  if(!window.jspdf?.jsPDF)return alert('O gerador de PDF não foi carregado. Atualize a página e tente novamente.');
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}),W=210,H=297,L=16,R=16,C={navy:[20,38,70],blue:[43,69,112],teal:[31,111,92],clay:[180,80,42],gold:[190,143,48],ink:[35,44,52],muted:[99,109,116],light:[244,247,249],line:[220,225,228]};
+  const clean=v=>String(v??'').replace(/[\u2010-\u2015]/g,'-'),fmtDate=v=>v?new Date(v+'T00:00:00').toLocaleDateString('pt-BR'):'Não informado',pctBR=v=>(Number(v)||0).toFixed(1).replace('.',',')+'%';
+  const inScope=DERIVED.colabs,active=inScope.filter(c=>c.status==='ativo'),inactive=inScope.filter(c=>c.status==='desligado'),admissions=inScope.filter(c=>c.admissao&&c.admissao>=FILTERS.from&&c.admissao<=FILTERS.to),dismissals=inScope.filter(c=>c.desligamento&&c.desligamento>=FILTERS.from&&c.desligamento<=FILTERS.to),missingDate=inactive.filter(c=>!c.desligamento).length,missingReason=inactive.filter(c=>!c.motivo).length,totalExit=dismissals.length,turnover=DERIVED.turnoverMedio*100,largest=DERIVED.areas[0];
+  const scope=`Período: ${fmtDate(FILTERS.from)} a ${fmtDate(FILTERS.to)} | Colaborador: ${FILTERS.employee||'Todos'} | Status: ${FILTERS.status||'Todos'} | Área: ${FILTERS.area||'Todas'}`;
+  const header=()=>{doc.setFillColor(...C.navy);doc.rect(0,0,W,15,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('GESTAO DE PESSOAS | TURNOVER & HEADCOUNT',L,9.5)};
+  const newPage=()=>{doc.addPage();header();return 24};
+  const section=(num,title,y)=>{if(y>268)y=newPage();doc.setTextColor(...C.navy);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(`${num}. ${clean(title).toUpperCase()}`,L,y);doc.setDrawColor(...C.teal);doc.setLineWidth(.7);doc.line(L,y+2,W-R,y+2);return y+9};
+  const paragraph=(value,y,tone=C.ink)=>{doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...tone);const lines=doc.splitTextToSize(clean(value),W-L-R);if(y+lines.length*4.5>277)y=newPage();doc.text(lines,L,y,{lineHeightFactor:1.48});return y+lines.length*4.5+4};
+  const table=(head,body,y,options={})=>{doc.autoTable({startY:y,margin:{left:options.left||L,right:options.right||R,bottom:18},head:[head],body,theme:'grid',headStyles:{fillColor:options.color||C.navy,textColor:255,fontStyle:'bold',fontSize:options.headSize||7.3},alternateRowStyles:{fillColor:C.light},styles:{font:'helvetica',fontSize:options.fontSize||7.3,cellPadding:options.padding||2.1,overflow:'linebreak',textColor:C.ink},columnStyles:options.columnStyles||{},showHead:'everyPage',didDrawPage:data=>{if(data.pageNumber>1)header()}});return doc.lastAutoTable.finalY+8};
+  const kpiCard=(x,y,w,label,value,note,color)=>{doc.setFillColor(255);doc.setDrawColor(...C.line);doc.roundedRect(x,y,w,28,2,2,'FD');doc.setFillColor(...color);doc.rect(x,y,2.2,28,'F');doc.setTextColor(...C.muted);doc.setFont('helvetica','bold');doc.setFontSize(6.8);doc.text(clean(label).toUpperCase(),x+6,y+7);doc.setTextColor(...C.ink);doc.setFontSize(15);doc.text(clean(value),x+6,y+17);doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...C.muted);doc.text(clean(note),x+6,y+23.5)};
+  // Capa
+  doc.setFillColor(...C.navy);doc.rect(0,0,W,H,'F');doc.setFillColor(...C.teal);doc.rect(0,0,6,H,'F');doc.setTextColor(171,202,194);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('RELATORIO EXECUTIVO DE RH',L,38);doc.setTextColor(255);doc.setFontSize(25);doc.text('TURNOVER &',L,57);doc.text('HEADCOUNT',L,69);doc.setFontSize(13);doc.setTextColor(211,220,232);doc.text('Análise de pessoas, movimentações e retenção',L,82);doc.setDrawColor(72,96,128);doc.line(L,96,W-R,96);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(doc.splitTextToSize(clean(scope),W-L-R),L,109,{lineHeightFactor:1.5});doc.setFontSize(8);doc.setTextColor(160,175,193);doc.text(`Emitido em ${new Date().toLocaleString('pt-BR')}`,L,137);doc.text('Documento gerado automaticamente pelo dashboard corporativo.',L,H-28);doc.setFont('helvetica','bold');doc.text('CONFIDENCIAL | USO GERENCIAL',L,H-20);
+  // Sumário executivo
+  let y=newPage();y=section('1','Sumário executivo',y);y=paragraph(`O recorte analisado reúne ${active.length} colaboradores ativos, ${admissions.length} admissões e ${totalExit} desligamentos com data informada. O turnover médio do período é de ${pctBR(turnover)}. ${largest?`A maior concentração do quadro está em ${largest.area}, com ${largest.qtd} colaboradores ativos.`:'Não há colaboradores ativos no recorte selecionado.'}`,y);
+  const cardW=(W-L-R-8)/3;kpiCard(L,y,cardW,'Headcount',String(DERIVED.headcountAtual),'Ativos ao final do período',C.teal);kpiCard(L+cardW+4,y,cardW,'Admissões',String(admissions.length),'Entradas no período',C.blue);kpiCard(L+(cardW+4)*2,y,cardW,'Desligamentos',String(totalExit),'Saídas com data',C.clay);y+=34;kpiCard(L,y,cardW,'Turnover médio',pctBR(turnover),'Média mensal',turnover>8?C.clay:C.teal);kpiCard(L+cardW+4,y,cardW,'Empresa',String(dismissals.filter(c=>c.motivo==='empresa').length),'Iniciativa da empresa',C.gold);kpiCard(L+(cardW+4)*2,y,cardW,'Colaborador',String(dismissals.filter(c=>c.motivo==='colaborador').length),'Iniciativa do colaborador',C.blue);y+=38;
+  y=section('2','Parecer gerencial',y);const assessment=turnover>10?'O índice de rotatividade é elevado e requer plano de ação imediato.':turnover>6?'O índice de rotatividade merece acompanhamento próximo, principalmente nas áreas e meses de maior incidência.':'O índice de rotatividade encontra-se em nível administrável, sem dispensar o monitoramento contínuo.';y=paragraph(`${assessment} A análise deve considerar conjuntamente o volume de admissões, a origem dos desligamentos, a concentração por área, o tempo de permanência e as movimentações entre lojas.`,y);y=paragraph(`${totalExit?`Dos desligamentos com data no período, ${dismissals.filter(c=>c.motivo==='empresa').length} foram por parte da empresa e ${dismissals.filter(c=>c.motivo==='colaborador').length} por parte do colaborador.`:'Não foram identificados desligamentos com data no período.'} Há ${missingDate} registros inativos sem data e ${missingReason} sem motivo, que devem ser completados para melhorar a qualidade das análises.`,y,C.muted);
+  // Evolução mensal e gráfico
+  y=newPage();y=section('3','Evolução mensal do quadro',y);const chartY=y,chartH=57,chartW=W-L-R,maxHC=Math.max(1,...DERIVED.monthly.map(m=>m.hcFim)),barGap=chartW/Math.max(1,DERIVED.monthly.length);doc.setFillColor(...C.light);doc.roundedRect(L,chartY,chartW,chartH,2,2,'F');DERIVED.monthly.forEach((m,i)=>{const x=L+i*barGap+3,h=(m.hcFim/maxHC)*(chartH-18);doc.setFillColor(...(m.real?C.blue:C.teal));doc.roundedRect(x,chartY+chartH-10-h,Math.max(3,barGap-6),h,1,1,'F');doc.setFontSize(6);doc.setTextColor(...C.muted);doc.text(m.mes,x+(barGap-6)/2,chartY+chartH-4,{align:'center'});doc.setTextColor(...C.ink);doc.text(String(m.hcFim),x+(barGap-6)/2,chartY+chartH-12-h,{align:'center'})});y=chartY+chartH+7;y=table(['Mês','Headcount final','Turnover','Natureza'],DERIVED.monthly.map(m=>[m.mes,String(m.hcFim),pctBR(m.turnover*100),m.real?'Real':'Projetado']),y,{color:C.blue,fontSize:7.6});
+  y=section('4','Distribuição do headcount por área',y);y=table(['Área','Colaboradores ativos','Participação'],DERIVED.areas.map(a=>[clean(a.area),String(a.qtd),pctBR(DERIVED.headcountAtual?a.qtd/DERIVED.headcountAtual*100:0)]),y,{color:C.teal,fontSize:7.7});
+  // Movimentações
+  y=newPage();y=section('5','Admissões no período',y);y=table(['Colaborador','Cargo','Área','Data de admissão','Tempo de casa'],admissions.sort((a,b)=>(a.admissao||'').localeCompare(b.admissao||'')).map(c=>[clean(c.nome),clean(c.cargo),clean(c.area),fmtDate(c.admissao),tempoCasaTexto(diasDeCasa(c))]),y,{color:C.teal,fontSize:7,columnStyles:{0:{cellWidth:48},3:{cellWidth:27}}});
+  y=section('6','Desligamentos no período',y);y=table(['Colaborador','Cargo','Área','Admissão','Desligamento','Permanência','Origem'],dismissals.sort((a,b)=>(a.desligamento||'').localeCompare(b.desligamento||'')).map(c=>[clean(c.nome),clean(c.cargo),clean(c.area),fmtDate(c.admissao),fmtDate(c.desligamento),tempoCasaTexto(diasDeCasa(c)),c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'Não informado']),y,{color:C.clay,fontSize:6.7,columnStyles:{0:{cellWidth:39},1:{cellWidth:29},2:{cellWidth:25}}});
+  // Quadro ativo
+  y=newPage();y=section('7','Quadro de colaboradores ativos',y);y=table(['Colaborador','Cargo','Área','Admissão','Tempo de casa','Loja atual'],active.sort((a,b)=>a.nome.localeCompare(b.nome)).map(c=>[clean(c.nome),clean(c.cargo),clean(c.area),fmtDate(c.admissao),tempoCasaTexto(diasDeCasa(c)),clean([...c.lojasPorMes].reverse().find(Boolean)||'Não informada')]),y,{color:C.navy,fontSize:7,columnStyles:{0:{cellWidth:48},1:{cellWidth:35},2:{cellWidth:29}}});
+  // Inativos e qualidade
+  y=newPage();y=section('8','Cadastro de colaboradores inativos',y);y=table(['Colaborador','Cargo','Área','Admissão','Desligamento','Tempo de casa','Origem'],inactive.sort((a,b)=>(b.desligamento||'').localeCompare(a.desligamento||'')||a.nome.localeCompare(b.nome)).map(c=>[clean(c.nome),clean(c.cargo),clean(c.area),fmtDate(c.admissao),fmtDate(c.desligamento),c.admissao&&c.desligamento?tempoCasaTexto(diasDeCasa(c)):'-',c.motivo==='empresa'?'Empresa':c.motivo==='colaborador'?'Colaborador':'Não informado']),y,{color:C.clay,fontSize:6.5,columnStyles:{0:{cellWidth:40},1:{cellWidth:29},2:{cellWidth:25}}});
+  y=newPage();y=section('9','Qualidade e integridade dos dados',y);y=paragraph(`Foram avaliados ${inScope.length} cadastros no recorte. Entre os inativos, ${missingDate} não possuem data de desligamento, ${missingReason} não possuem origem do desligamento e ${inactive.filter(c=>!c.area||c.area==='Não informada').length} não possuem área informada. Esses registros permanecem visíveis, mas não devem ser utilizados para conclusões temporais sem complementação cadastral.`,y);y=table(['Verificação','Quantidade','Tratamento recomendado'],[['Inativos sem data',String(missingDate),'Completar a data de desligamento'],['Inativos sem motivo',String(missingReason),'Classificar empresa ou colaborador'],['Inativos sem área',String(inactive.filter(c=>!c.area||c.area==='Não informada').length),'Completar área e cargo'],['Cadastros analisados',String(inScope.length),'Manter revisão mensal']],y,{color:C.gold,fontSize:7.5});
+  y=section('10','Recomendações executivas',y);const recommendations=[turnover>8?'Criar plano de redução de turnover com responsáveis, prazos e metas por área.':'Manter o acompanhamento mensal do turnover e estabelecer limite de alerta por área.','Completar datas, motivos, áreas e cargos dos registros inativos ainda incompletos.','Acompanhar desligamentos voluntários separadamente para identificar riscos de retenção.','Relacionar admissões, desligamentos e transferências com desempenho, absenteísmo e tempo de reposição.','Revisar o relatório após cada movimentação para manter o headcount atualizado.'];recommendations.forEach((r,i)=>{doc.setFillColor(...C.light);doc.roundedRect(L,y-4,W-L-R,10,2,2,'F');doc.setTextColor(...C.teal);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(String(i+1).padStart(2,'0'),L+4,y+1);doc.setTextColor(...C.ink);doc.setFont('helvetica','normal');doc.text(doc.splitTextToSize(clean(r),W-L-R-16),L+13,y+1);y+=13;if(y>276)y=newPage()});
+  // Rodapés
+  const pages=doc.getNumberOfPages();for(let p=2;p<=pages;p++){doc.setPage(p);doc.setDrawColor(...C.line);doc.line(L,H-14,W-R,H-14);doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(...C.muted);doc.text('Turnover & Headcount 2026 | Relatório executivo',L,H-9);doc.text(`Página ${p-1} de ${pages-1}`,W-R,H-9,{align:'right'})}
+  doc.save(`relatorio-executivo-rh-${FILTERS.from}-a-${FILTERS.to}.pdf`);
+}
+document.getElementById('pdfBtn').addEventListener('click',downloadHRPDFPremium);
 
 // ================= Acesso administrativo e atualização em tempo real =================
 function adminUI(){
