@@ -638,7 +638,7 @@
   </div>
   <div class="table-scroll scroll-y commercial-overview-content"><table class="store-table"><thead><tr><th>Loja</th><th>Vendas</th><th>Meta</th><th>Atingimento</th><th>Ticket médio</th><th>Conversão</th><th>Atendimentos</th><th>Equipe</th><th>Vagas</th><th>Produtividade</th><th>Turnover</th><th>Índice comercial</th></tr></thead><tbody id="storeMetricsBody"></tbody></table></div>
   <div class="seller-section commercial-overview-content"><div class="eyebrow">Desempenho comercial</div><h2>Análise comparativa por colaborador, gerente e loja</h2><p class="desc">O ranking inclui todas as pessoas do recorte. Os sinais de faturamento, PA e ticket médio seguem automaticamente a lógica semanal da planilha: verde para meta alcançada, amarelo para atenção e vermelho para resultado abaixo da faixa.</p><div class="store-kpis" id="sellerKpis"></div><div class="store-analysis-grid"><article class="decision-card"><h3>Ranking de colaboradores e gerentes</h3><div class="seller-bars" id="sellerBars"></div></article><article class="decision-card"><h3>Análise da seleção</h3><div class="recommend-list" id="sellerAnalysisText"></div></article></div><div class="table-scroll scroll-y"><table class="store-table"><thead><tr><th>Loja</th><th>Colaborador / gerente</th><th>Vendas totais</th><th>Presencial</th><th>E-commerce</th><th>Vendas à vista</th><th>Meta semanal</th><th>Saldo faturamento</th><th>Peças</th><th>Tickets</th><th>PA</th><th>Saldo PA</th><th>Ticket médio</th><th>Saldo TM</th><th>Índice</th></tr></thead><tbody id="sellerMetricsBody"></tbody></table></div></div>
-  <div id="indicatorReportPanel" hidden><div class="eyebrow">Modelo da planilha · Relatório de Indicadores</div><h2>Relatório semanal de indicadores</h2><p class="desc">Faturamento, meta semanal, saldo, PA e ticket médio por colaborador e gerente, separados por semana e atualizados pelos filtros acima.</p><div class="indicator-legend"><span class="signal green">Meta alcançada</span><span class="signal yellow">Faixa de atenção</span><span class="signal red">Abaixo da faixa</span><span class="signal gray">Sem dado</span></div><div class="indicator-summary" id="indicatorSummary"></div><div id="indicatorWeeks"></div></div>
+  <div id="indicatorReportPanel" hidden><div class="eyebrow">Modelo da planilha · Relatório de Indicadores</div><h2>Relatório semanal de indicadores</h2><p class="desc">Faturamento, meta semanal variável, saldo, PA e ticket médio por colaborador e gerente. A meta de cada semana usa automaticamente o percentual definido para o mês na aba Aux. Fat. Semanal.</p><div class="indicator-legend"><span class="signal green">Meta alcançada</span><span class="signal yellow">Faixa de atenção</span><span class="signal red">Abaixo da faixa</span><span class="signal gray">Sem dado</span></div><div class="indicator-summary" id="indicatorSummary"></div><div id="indicatorWeeks"></div></div>
 </section>
 
 <section class="panel" id="rhRoster">
@@ -691,6 +691,8 @@ function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+function excludedFromDashboard(name){return normalizeText(name).includes('carol neres')}
+function applyDashboardExclusions(){if(!DATA)return;DATA.colaboradores=(DATA.colaboradores||[]).filter(c=>!excludedFromDashboard(c.nome));DATA.sellerMetrics=(DATA.sellerMetrics||[]).filter(r=>!excludedFromDashboard(r.vendedor))}
 function filteredCollaborators(){
   const q=normalizeText(FILTERS.employee),from=FILTERS.from||'0000-01-01',to=FILTERS.to||'9999-12-31';
   return DATA.colaboradores.filter(c=>{
@@ -865,6 +867,7 @@ async function loadData(){
   const raw = await storageGet();
   if(!raw){
     DATA = buildDefaultData();
+    applyDashboardExclusions();
     return;
   }
   try{
@@ -874,6 +877,7 @@ async function loadData(){
     DATA.storeMetrics=Array.isArray(DATA.storeMetrics)?DATA.storeMetrics:[];
     DATA.sellerMetrics=Array.isArray(DATA.sellerMetrics)?DATA.sellerMetrics:[];
     DATA.storeMetricsMeta=DATA.storeMetricsMeta||{};
+    applyDashboardExclusions();
   }catch(e){
     console.error('Falha ao carregar dados salvos, usando padrão.', e);
     DATA = buildDefaultData();
@@ -1213,9 +1217,9 @@ function weekOfMonth(iso){const day=Number(String(iso||'').slice(8,10));return d
 function parseSupervisionWorkbook(workbook){
   const name=workbook.SheetNames.find(n=>normalizeText(n)==='acomp metas vendedores');if(!name)return null;
   const matrix=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:null,raw:true}),weeklySheet=workbook.SheetNames.find(n=>normalizeText(n)==='aux fat semanal'),weeklyMatrix=weeklySheet?XLSX.utils.sheet_to_json(workbook.Sheets[weeklySheet],{header:1,defval:null,raw:true}):[],weightsByMonth={};weeklyMatrix.slice(1).forEach(r=>{const d=excelDateISO(r[0]),w=[0,1,2,3].map(i=>metricNumber(r[i+1]));if(d&&w.some(Boolean))weightsByMonth[d.slice(0,7)]=w});const sellers=[];
-  for(let i=2;i<matrix.length;i++){const r=matrix[i],date=excelDateISO(r[0]),unit=String(r[1]||''),seller=String(r[2]||'').trim();if(!date.startsWith('2026-')||!seller||!/(MATRIZ|FILIAL)/i.test(unit)||normalizeText(seller)===normalizeText(unit))continue;
+  for(let i=2;i<matrix.length;i++){const r=matrix[i],date=excelDateISO(r[0]),unit=String(r[1]||''),seller=String(r[2]||'').trim();if(!date.startsWith('2026-')||!seller||excludedFromDashboard(seller)||!/(MATRIZ|FILIAL)/i.test(unit)||normalizeText(seller)===normalizeText(unit))continue;
     const month=date.slice(0,7),monthlyPhysical=metricNumber(r[5]),monthlyEcommerce=metricNumber(r[6]),monthlyTotal=metricNumber(r[7])||(monthlyPhysical+monthlyEcommerce),monthlyCash=metricNumber(r[112]),monthlyMeta=metricNumber(r[30]),metaPa=metricNumber(r[81]),metaTicket=metricNumber(r[84]),weights=weightsByMonth[month]||[.25,.25,.25,.25],weekCols=[[86,87,88,89,90,91],[92,93,94,95,96,97],[98,99,100,101,102,103],[104,105,106,107,108,109]];
-    weekCols.forEach((cols,idx)=>{const vendasPresencial=metricNumber(r[cols[0]]),pecasFisicas=metricNumber(r[cols[1]]),ticketsFisicos=metricNumber(r[cols[2]]),vendasEcommerce=metricNumber(r[cols[3]]),pecasEcommerce=metricNumber(r[cols[4]]),ticketsEcommerce=metricNumber(r[cols[5]]),vendas=vendasPresencial+vendasEcommerce,pecas=pecasFisicas+pecasEcommerce,tickets=ticketsFisicos+ticketsEcommerce,meta=monthlyMeta/4,vendasAVista=monthlyPhysical?vendasPresencial/monthlyPhysical*monthlyCash:0,pa=tickets?pecas/tickets:0,ticket=tickets?vendas/tickets:0;sellers.push({date:month,day:'',week:String(idx+1),loja:storeCode(unit),unidade:unit,vendedor:seller,du:metricNumber(r[3]),dr:metricNumber(r[4]),vendas,vendasPresencial,vendasEcommerce,vendasAVista,vendasLoja:vendasPresencial,meta,atingimento:meta?vendas/meta*100:0,pecas,tickets,pa,metaPa,ticket,metaTicket})});
+    weekCols.forEach((cols,idx)=>{const vendasPresencial=metricNumber(r[cols[0]]),pecasFisicas=metricNumber(r[cols[1]]),ticketsFisicos=metricNumber(r[cols[2]]),vendasEcommerce=metricNumber(r[cols[3]]),pecasEcommerce=metricNumber(r[cols[4]]),ticketsEcommerce=metricNumber(r[cols[5]]),vendas=vendasPresencial+vendasEcommerce,pecas=pecasFisicas+pecasEcommerce,tickets=ticketsFisicos+ticketsEcommerce,weekWeight=Number(weights[idx])||.25,meta=monthlyMeta*weekWeight,vendasAVista=monthlyPhysical?vendasPresencial/monthlyPhysical*monthlyCash:0,pa=tickets?pecas/tickets:0,ticket=tickets?vendas/tickets:0;sellers.push({date:month,day:'',week:String(idx+1),weekWeight,loja:storeCode(unit),unidade:unit,vendedor:seller,du:metricNumber(r[3]),dr:metricNumber(r[4]),vendas,vendasPresencial,vendasEcommerce,vendasAVista,vendasLoja:vendasPresencial,meta,atingimento:meta?vendas/meta*100:0,pecas,tickets,pa,metaPa,ticket,metaTicket})});
   }
   const latest=[...new Set(sellers.map(r=>r.date))].sort().pop(),base=sellers.filter(r=>r.date===latest),groups={};base.forEach(r=>{const g=groups[r.loja]||={loja:r.loja,vendas:0,meta:0,pecas:0,tickets:0,equipe:new Set()};g.vendas+=r.vendas;g.meta+=r.meta;g.pecas+=r.pecas;g.tickets+=r.tickets;g.equipe.add(r.vendedor);groups[r.loja]=g});
   const stores=Object.values(groups).map(g=>({loja:g.loja,vendas:g.vendas,meta:g.meta,atingimento:g.meta?g.vendas/g.meta*100:0,ticket:g.tickets?g.vendas/g.tickets:0,conversao:0,fluxo:g.tickets,equipe:g.equipe.size,vagas:0,produtividade:g.equipe.size?g.vendas/g.equipe.size:0,turnover:0,pa:g.tickets?g.pecas/g.tickets:0}));return {sellers,stores,latest,sheet:name};
