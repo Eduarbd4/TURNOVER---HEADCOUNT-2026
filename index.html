@@ -1638,7 +1638,945 @@ document.getElementById('loginForm').addEventListener('submit',async e=>{
   adminSession=data.session;loginOverlay.classList.remove('open');adminUI();updateSyncTag(true);
 });
 document.getElementById('logoutBtn').addEventListener('click',async()=>{await cloudDb.auth.signOut();adminSession=null;adminUI()});
+/* ============================================================
+   HISTÓRICO MENSAL — INTELIGÊNCIA COMERCIAL
+   TURNOVER & HEADCOUNT 2026
 
+   Objetivo:
+   - Agosto continua salvo quando Setembro for importado
+   - Setembro não substitui Agosto
+   - Outubro não substitui Setembro
+   - Permite consultar cada competência separadamente
+   - Mantém os dados no mesmo payload do Supabase
+   ============================================================ */
+
+let COMMERCIAL_SELECTED = '';
+let COMMERCIAL_IMPORT_CAPTURE = false;
+
+
+/* ============================================================
+   1. PADRONIZA A COMPETÊNCIA
+   ============================================================ */
+
+function commercialNormalizeCompetence(v) {
+  if (!v) return '';
+
+  const s = String(v).trim();
+
+  // Formato: 2026-08
+  const iso = s.match(/^(\d{4})-(\d{2})/);
+
+  if (iso) {
+    return `${iso[1]}-${iso[2]}`;
+  }
+
+  // Formato: 08/2026
+  const br = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+
+  if (br) {
+    return `${br[2]}-${String(br[1]).padStart(2, '0')}`;
+  }
+
+  // Tenta interpretar como data
+  const d = new Date(s);
+
+  if (!isNaN(d)) {
+    return `${d.getFullYear()}-${String(
+      d.getMonth() + 1
+    ).padStart(2, '0')}`;
+  }
+
+  return '';
+}
+
+
+/* ============================================================
+   2. NOME BONITO DO MÊS
+   ============================================================ */
+
+function commercialMonthLabel(comp) {
+
+  if (comp === 'ALL') {
+    return 'Todos os meses';
+  }
+
+  if (!comp) {
+    return 'Sem competência';
+  }
+
+  const [y, m] = comp.split('-').map(Number);
+
+  return new Intl.DateTimeFormat(
+    'pt-BR',
+    {
+      month: 'long',
+      year: 'numeric'
+    }
+  ).format(
+    new Date(y, m - 1, 1)
+  );
+}
+
+
+/* ============================================================
+   3. IDENTIFICA O MÊS DOS DADOS IMPORTADOS
+   ============================================================ */
+
+function inferCommercialCompetence() {
+
+  const candidates = [];
+
+  (DATA?.indicatorMetrics || []).forEach(r => {
+
+    if (r.date) {
+      candidates.push(r.date);
+    }
+
+  });
+
+  (DATA?.sellerMetrics || []).forEach(r => {
+
+    if (r.date) {
+      candidates.push(r.date);
+    }
+
+  });
+
+  if (DATA?.storeMetricsMeta?.latest) {
+    candidates.push(
+      DATA.storeMetricsMeta.latest
+    );
+  }
+
+  if (DATA?.storeMetricsMeta?.importedAt) {
+    candidates.push(
+      DATA.storeMetricsMeta.importedAt
+    );
+  }
+
+  const normalized = candidates
+    .map(commercialNormalizeCompetence)
+    .filter(Boolean)
+    .sort();
+
+  if (normalized.length) {
+    return normalized[
+      normalized.length - 1
+    ];
+  }
+
+  // Caso não encontre competência nos dados,
+  // usa o mês atual.
+  const d = new Date();
+
+  return `${d.getFullYear()}-${String(
+    d.getMonth() + 1
+  ).padStart(2, '0')}`;
+}
+
+
+/* ============================================================
+   4. CRIA O HISTÓRICO
+   ============================================================ */
+
+function ensureCommercialHistory() {
+
+  if (!DATA) return;
+
+  if (
+    !DATA.commercialHistory ||
+    typeof DATA.commercialHistory !== 'object' ||
+    Array.isArray(DATA.commercialHistory)
+  ) {
+
+    DATA.commercialHistory = {};
+
+  }
+
+
+  /* ----------------------------------------------------------
+     MIGRAÇÃO DOS DADOS QUE JÁ EXISTEM
+
+     Exemplo:
+     Se hoje o painel possui Agosto/2026,
+     ele transforma os dados atuais em:
+
+     commercialHistory["2026-08"]
+
+     Isso evita perder Agosto quando Setembro for importado.
+     ---------------------------------------------------------- */
+
+  const hasLegacy =
+
+    (DATA.storeMetrics || []).length ||
+
+    (DATA.sellerMetrics || []).length ||
+
+    (DATA.indicatorMetrics || []).length;
+
+
+  if (
+    hasLegacy &&
+    !Object.keys(DATA.commercialHistory).length
+  ) {
+
+    const comp =
+      inferCommercialCompetence();
+
+
+    DATA.commercialHistory[comp] = {
+
+      storeMetrics:
+        structuredClone(
+          DATA.storeMetrics || []
+        ),
+
+      sellerMetrics:
+        structuredClone(
+          DATA.sellerMetrics || []
+        ),
+
+      indicatorMetrics:
+        structuredClone(
+          DATA.indicatorMetrics || []
+        ),
+
+      storeMetricsMeta:
+        structuredClone(
+          DATA.storeMetricsMeta || {}
+        ),
+
+      savedAt:
+        new Date().toISOString()
+
+    };
+
+
+    DATA.config = {
+
+      ...(DATA.config || {}),
+
+      commercialHistoryMigrated: true
+
+    };
+
+  }
+
+}
+
+
+/* ============================================================
+   5. LISTA OS MESES SALVOS
+   ============================================================ */
+
+function commercialHistoryKeys() {
+
+  ensureCommercialHistory();
+
+  return Object.keys(
+    DATA?.commercialHistory || {}
+  ).sort();
+
+}
+
+
+/* ============================================================
+   6. DESCOBRE O ÚLTIMO MÊS
+   ============================================================ */
+
+function commercialLatestKey() {
+
+  const keys =
+    commercialHistoryKeys();
+
+  return keys.length
+    ? keys[keys.length - 1]
+    : '';
+
+}
+
+
+/* ============================================================
+   7. PEGA OS DADOS DE UM MÊS
+   ============================================================ */
+
+function commercialSnapshot(comp) {
+
+  return (
+    DATA?.commercialHistory?.[comp]
+    || null
+  );
+
+}
+
+
+/* ============================================================
+   8. SALVA O MÊS ATUAL NO HISTÓRICO
+   ============================================================ */
+
+function saveCommercialSnapshot(comp) {
+
+  ensureCommercialHistory();
+
+  if (!comp) {
+
+    comp =
+      inferCommercialCompetence();
+
+  }
+
+
+  DATA.commercialHistory[comp] = {
+
+    storeMetrics:
+      structuredClone(
+        DATA.storeMetrics || []
+      ),
+
+    sellerMetrics:
+      structuredClone(
+        DATA.sellerMetrics || []
+      ),
+
+    indicatorMetrics:
+      structuredClone(
+        DATA.indicatorMetrics || []
+      ),
+
+    storeMetricsMeta: {
+
+      ...structuredClone(
+        DATA.storeMetricsMeta || {}
+      ),
+
+      competence: comp
+
+    },
+
+    savedAt:
+      new Date().toISOString()
+
+  };
+
+
+  COMMERCIAL_SELECTED = comp;
+
+  return comp;
+
+}
+
+
+/* ============================================================
+   9. CARREGA UM MÊS DO HISTÓRICO
+   ============================================================ */
+
+function hydrateCommercialSnapshot(comp) {
+
+  ensureCommercialHistory();
+
+
+  /* ----------------------------------------------------------
+     TODOS OS MESES
+     ---------------------------------------------------------- */
+
+  if (comp === 'ALL') {
+
+    const keys =
+      commercialHistoryKeys();
+
+    const stores = [];
+    const sellers = [];
+    const indicators = [];
+
+
+    keys.forEach(k => {
+
+      const s =
+        commercialSnapshot(k);
+
+
+      (s?.storeMetrics || [])
+        .forEach(r => {
+
+          stores.push({
+
+            ...r,
+
+            competence: k
+
+          });
+
+        });
+
+
+      (s?.sellerMetrics || [])
+        .forEach(r => {
+
+          sellers.push({
+
+            ...r,
+
+            competence: k
+
+          });
+
+        });
+
+
+      (s?.indicatorMetrics || [])
+        .forEach(r => {
+
+          indicators.push({
+
+            ...r,
+
+            competence: k
+
+          });
+
+        });
+
+    });
+
+
+    DATA.storeMetrics =
+      stores;
+
+    DATA.sellerMetrics =
+      sellers;
+
+    DATA.indicatorMetrics =
+      indicators;
+
+
+    DATA.storeMetricsMeta = {
+
+      competence: 'ALL',
+
+      months: keys
+
+    };
+
+
+    COMMERCIAL_SELECTED =
+      'ALL';
+
+    return;
+
+  }
+
+
+  /* ----------------------------------------------------------
+     UM MÊS ESPECÍFICO
+     ---------------------------------------------------------- */
+
+  const snap =
+    commercialSnapshot(comp);
+
+
+  if (!snap) {
+    return;
+  }
+
+
+  DATA.storeMetrics =
+    structuredClone(
+      snap.storeMetrics || []
+    );
+
+
+  DATA.sellerMetrics =
+    structuredClone(
+      snap.sellerMetrics || []
+    );
+
+
+  DATA.indicatorMetrics =
+    structuredClone(
+      snap.indicatorMetrics || []
+    );
+
+
+  DATA.storeMetricsMeta =
+    structuredClone(
+      snap.storeMetricsMeta || {}
+    );
+
+
+  COMMERCIAL_SELECTED =
+    comp;
+
+}
+
+
+/* ============================================================
+   10. CRIA O SELETOR DE COMPETÊNCIA
+   ============================================================ */
+
+function ensureCommercialMonthSelector() {
+
+  const host =
+    document
+      .getElementById(
+        'storeUploadInfo'
+      )
+      ?.parentElement;
+
+
+  if (
+    !host ||
+    document.getElementById(
+      'commercialMonthControl'
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  const wrap =
+    document.createElement(
+      'div'
+    );
+
+
+  wrap.id =
+    'commercialMonthControl';
+
+
+  wrap.style.cssText = `
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:12px 0 16px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:#f9faf8;
+  `;
+
+
+  const label =
+    document.createElement(
+      'label'
+    );
+
+
+  label.style.cssText = `
+    font:10px 'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+  `;
+
+
+  label.textContent =
+    'Competência';
+
+
+  const select =
+    document.createElement(
+      'select'
+    );
+
+
+  select.id =
+    'commercialMonthSelect';
+
+
+  select.style.cssText = `
+    min-width:210px;
+    height:39px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fff;
+    padding:7px 10px;
+    font:12px 'Inter', sans-serif;
+    color:var(--ink);
+  `;
+
+
+  const hint =
+    document.createElement(
+      'span'
+    );
+
+
+  hint.id =
+    'commercialMonthHint';
+
+
+  hint.style.cssText = `
+    font:10px 'IBM Plex Mono', monospace;
+    color:var(--ink-soft);
+  `;
+
+
+  wrap.append(
+    label,
+    select,
+    hint
+  );
+
+
+  host.insertBefore(
+    wrap,
+    document.getElementById(
+      'storeUploadInfo'
+    )
+  );
+
+
+  /* ----------------------------------------------------------
+     TROCA DE MÊS
+     ---------------------------------------------------------- */
+
+  select.addEventListener(
+    'change',
+    () => {
+
+      hydrateCommercialSnapshot(
+        select.value
+      );
+
+
+      renderAll();
+
+
+      if (
+        typeof syncCommercialFilterOptions
+        === 'function'
+      ) {
+
+        syncCommercialFilterOptions(
+          true
+        );
+
+      }
+
+
+      if (
+        typeof refreshCommercialResults
+        === 'function'
+      ) {
+
+        refreshCommercialResults();
+
+      }
+
+
+      refreshCommercialMonthSelector();
+
+    }
+  );
+
+
+  refreshCommercialMonthSelector();
+
+}
+
+
+/* ============================================================
+   11. ATUALIZA AS OPÇÕES DO SELETOR
+   ============================================================ */
+
+function refreshCommercialMonthSelector() {
+
+  const select =
+    document.getElementById(
+      'commercialMonthSelect'
+    );
+
+
+  if (!select) {
+    return;
+  }
+
+
+  const keys =
+    commercialHistoryKeys();
+
+
+  if (
+    !COMMERCIAL_SELECTED ||
+
+    (
+      COMMERCIAL_SELECTED !== 'ALL' &&
+      !keys.includes(
+        COMMERCIAL_SELECTED
+      )
+    )
+  ) {
+
+    COMMERCIAL_SELECTED =
+      commercialLatestKey();
+
+  }
+
+
+  select.innerHTML = [
+
+    ...keys
+      .slice()
+      .reverse()
+      .map(
+        k => `
+
+          <option
+            value="${k}"
+
+            ${
+              COMMERCIAL_SELECTED === k
+                ? 'selected'
+                : ''
+            }
+          >
+
+            ${
+              commercialMonthLabel(k)
+            }
+
+          </option>
+
+        `
+      ),
+
+
+    ...(
+      keys.length > 1
+
+      ? [
+
+          `
+
+          <option
+            value="ALL"
+
+            ${
+              COMMERCIAL_SELECTED === 'ALL'
+                ? 'selected'
+                : ''
+            }
+          >
+
+            Todos os meses
+
+          </option>
+
+          `
+
+        ]
+
+      : []
+    )
+
+  ].join('');
+
+
+  const hint =
+    document.getElementById(
+      'commercialMonthHint'
+    );
+
+
+  if (hint) {
+
+    hint.textContent =
+
+      COMMERCIAL_SELECTED === 'ALL'
+
+      ? `${keys.length} competências consolidadas`
+
+      : `Histórico preservado · ${
+          commercialMonthLabel(
+            COMMERCIAL_SELECTED ||
+            commercialLatestKey()
+          )
+        }`;
+
+  }
+
+}
+
+
+/* ============================================================
+   12. INTERCEPTA O CARREGAMENTO DOS DADOS
+   ============================================================ */
+
+const _loadDataMonthlyHistory =
+  loadData;
+
+
+loadData =
+  async function() {
+
+    await _loadDataMonthlyHistory();
+
+
+    ensureCommercialHistory();
+
+
+    const keys =
+      commercialHistoryKeys();
+
+
+    const target =
+
+      (
+        COMMERCIAL_SELECTED === 'ALL' ||
+
+        keys.includes(
+          COMMERCIAL_SELECTED
+        )
+      )
+
+      ? COMMERCIAL_SELECTED
+
+      : commercialLatestKey();
+
+
+    if (target) {
+
+      hydrateCommercialSnapshot(
+        target
+      );
+
+    }
+
+  };
+
+
+/* ============================================================
+   13. DETECTA NOVA IMPORTAÇÃO
+   ============================================================ */
+
+const _storeUploadInputHistory =
+  document.getElementById(
+    'storeUploadInput'
+  );
+
+
+if (_storeUploadInputHistory) {
+
+  _storeUploadInputHistory
+    .addEventListener(
+
+      'change',
+
+      () => {
+
+        COMMERCIAL_IMPORT_CAPTURE =
+          true;
+
+      },
+
+      true
+
+    );
+
+}
+
+
+/* ============================================================
+   14. INTERCEPTA O SALVAMENTO
+   ============================================================ */
+
+const _persistAndRenderMonthlyHistory =
+  persistAndRender;
+
+
+persistAndRender =
+  async function() {
+
+
+    /* --------------------------------------------------------
+       SOMENTE QUANDO UMA NOVA PLANILHA FOI IMPORTADA
+       -------------------------------------------------------- */
+
+    if (
+      COMMERCIAL_IMPORT_CAPTURE
+    ) {
+
+      const comp =
+        inferCommercialCompetence();
+
+
+      saveCommercialSnapshot(
+        comp
+      );
+
+
+      COMMERCIAL_IMPORT_CAPTURE =
+        false;
+
+    }
+
+
+    const result =
+      await _persistAndRenderMonthlyHistory();
+
+
+    ensureCommercialMonthSelector();
+
+    refreshCommercialMonthSelector();
+
+
+    return result;
+
+  };
+
+
+/* ============================================================
+   15. INTERCEPTA O RENDER
+   ============================================================ */
+
+const _renderAllMonthlyHistory =
+  renderAll;
+
+
+renderAll =
+  function() {
+
+    _renderAllMonthlyHistory();
+
+
+    ensureCommercialMonthSelector();
+
+    refreshCommercialMonthSelector();
+
+  };
+
+
+/* ============================================================
+   16. SEGURANÇA AO TROCAR DE MÊS
+   ============================================================ */
+
+document.addEventListener(
+
+  'change',
+
+  e => {
+
+    if (
+      e.target?.id ===
+      'commercialMonthSelect'
+    ) {
+
+      COMMERCIAL_IMPORT_CAPTURE =
+        false;
+
+    }
+
+  }
+
+);
+
+
+/* ============================================================
+   FIM — HISTÓRICO MENSAL
+   ============================================================ */
 // ================= Inicialização =================
 (async function init(){
   try{
