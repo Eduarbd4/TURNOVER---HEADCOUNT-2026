@@ -744,6 +744,50 @@ function mergeSpreadsheetInactives(list){
   return result;
 }
 
+// Histórico confirmado nas abas mensais (inclusive fechamentos ocultos).
+// Mantém Jan–Set atualizados mesmo quando o Supabase ainda possui um cadastro antigo.
+const REQUIRED_MOVEMENT_HISTORY = [
+  {
+    nome:'Anna Carolina dos Santos Serra',
+    cargo:'Sub gerente', area:'Vendas | Gerência', admissao:'2026-04-01',
+    lojas:[null,null,null,'LGO','LGO','LGO','BSB','BSB','BSB']
+  },
+  {
+    nome:'Vinícius de Assumpção Diniz',
+    cargo:'Sub gerente', area:'Vendas | Gerência', admissao:'2025-08-05',
+    lojas:['BSB','BSB','BSB','BSB','BSB','FLG','FLG','FLG','FLG']
+  },
+  {
+    nome:'Gabriel Araújo Rezende Costa',
+    cargo:'Sub gerente', area:'Vendas | Gerência', admissao:'2026-02-01',
+    lojas:[null,'PKS','PKS','PKS','PKS','PKS','PKS','PKS','PKS']
+  }
+];
+function mergeRequiredMovementHistory(list){
+  const result=[...(list||[])];
+  REQUIRED_MOVEMENT_HISTORY.forEach(def=>{
+    let person=result.find(c=>normalizeText(c.nome)===normalizeText(def.nome));
+    if(!person){
+      person={
+        id:uid(), nome:def.nome, cargo:def.cargo, area:def.area,
+        admissao:def.admissao, desligamento:null, motivo:null,
+        status:'ativo', lojasPorMes:Array(12).fill(null),
+        origem:'Acompanhamento Supervisão GERAL'
+      };
+      result.push(person);
+    }
+    person.cargo=person.cargo||def.cargo;
+    person.area=person.area||def.area;
+    person.admissao=person.admissao||def.admissao;
+    person.lojasPorMes=Array.isArray(person.lojasPorMes)
+      ? person.lojasPorMes.slice(0,12)
+      : Array(12).fill(null);
+    while(person.lojasPorMes.length<12)person.lojasPorMes.push(null);
+    def.lojas.forEach((loja,idx)=>{person.lojasPorMes[idx]=loja});
+  });
+  return result;
+}
+
 // ---------- Dados padrão (semente inicial) ----------
 function buildDefaultData(){
   const historico = {
@@ -764,21 +808,21 @@ function buildDefaultData(){
 
   const storeColors = { LGO:'#1f6f5c', PKS:'#b4502a', BSB:'#c99a3b', FLG:'#2b4570', MNE:'#6b7f4e' };
 
-  // linhas de lojas conhecidas (Jan-Ago) para quem tem histórico de movimentação
+  // linhas de lojas conhecidas (Jan-Set) para quem tem histórico de movimentação
   const swim = {
     'Igor Tadeu Viana Dantas': ['PKS','PKS','LGO','LGO','LGO','LGO','LGO','LGO'],
     'Rafaela Martins Cunha de Sá': ['LGO','FLG','FLG','FLG','FLG','FLG','FLG','FLG'],
     'Vagner Alexandre Belletti Silva': ['BSB','LGO','LGO','LGO','BSB','BSB','BSB','BSB'],
-    'Vinícius de Assumpção Diniz': ['PKS','BSB','BSB','BSB','BSB','FLG','FLG','FLG'],
+    'Vinícius de Assumpção Diniz': ['BSB','BSB','BSB','BSB','BSB','FLG','FLG','FLG','FLG'],
     'Yuri Lucio Agripino dos Santos': ['PKS','PKS','PKS','PKS','PKS','PKS','PKS','PKS'],
-    'Anna Carolina dos Santos Serra': [null,null,null,'LGO','LGO','LGO','BSB','BSB'],
+    'Anna Carolina dos Santos Serra': [null,null,null,'LGO','LGO','LGO','BSB','BSB','BSB'],
     'Vitória Lamounier de Faria': [null,null,null,null,'BSB','BSB','BSB','LGO'],
     'Yann Carmo de Oliveira': ['FLG','MNE','MNE','MNE','MNE','MNE','MNE','MNE'],
     'Gustavo Dal-Berti': [null,null,null,null,null,null,'LGO','BSB'],
     'Rafael Borges Rodrigues': ['FLG','FLG','FLG','FLG','FLG','FLG','FLG','FLG'],
     'Yasmin Borges Silva': ['BSB','BSB','BSB','BSB','BSB','BSB','BSB','BSB'],
     'Alexia Pereira Lopes': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
-    'Gabriel Araújo Rezende Costa': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
+    'Gabriel Araújo Rezende Costa': [null,'PKS','PKS','PKS','PKS','PKS','PKS','PKS','PKS'],
     'Zilvan Alves de Morais': [null,null,'PKS','PKS','PKS','PKS','PKS','PKS'],
     'Alexandra Andréia de Souza Vieira': [null,null,null,null,'LGO','LGO','LGO','LGO'],
     'Eduardo De Padua Alves': [null,null,null,null,null,null,'MNE','MNE'],
@@ -815,11 +859,13 @@ function buildDefaultData(){
   const colaboradores = rosterSeed.map(r => {
     const admissaoDate = new Date(HOJE.getTime() - r.dias * msPerDay);
     const admissao = admissaoDate.toISOString().slice(0,10);
-    const lojasBase = swim[r.nome] || [null,null,null,null,null,null,null,null];
-    const lojasPorMes = lojasBase.slice(0,8);
-    // projeta Set-Dez repetindo a última loja conhecida (ajustável depois)
-    const ultima = lojasPorMes[7] || null;
-    for(let i=8;i<12;i++) lojasPorMes.push(ultima);
+    const lojasBase = swim[r.nome] || Array(9).fill(null);
+    const lojasPorMes = lojasBase.slice(0,9);
+    const ultimaConhecida = [...lojasPorMes].reverse().find(Boolean) || null;
+    while(lojasPorMes.length<9)lojasPorMes.push(ultimaConhecida);
+    // projeta Out-Dez repetindo Setembro (ajustável depois)
+    const ultima = lojasPorMes[8] || null;
+    for(let i=9;i<12;i++) lojasPorMes.push(ultima);
     return {
       id: uid(),
       nome: r.nome, cargo: r.cargo, area: r.area,
@@ -873,7 +919,7 @@ async function loadData(){
   try{
     const parsed = JSON.parse(raw);
     DATA = Object.assign(buildDefaultDataShell(), parsed);
-    DATA.colaboradores=mergeSpreadsheetInactives(DATA.colaboradores);
+    DATA.colaboradores=mergeRequiredMovementHistory(mergeSpreadsheetInactives(DATA.colaboradores));
     DATA.storeMetrics=Array.isArray(DATA.storeMetrics)?DATA.storeMetrics:[];
     DATA.sellerMetrics=Array.isArray(DATA.sellerMetrics)?DATA.sellerMetrics:[];
     DATA.indicatorMetrics=Array.isArray(DATA.indicatorMetrics)?DATA.indicatorMetrics:[];
@@ -1073,7 +1119,11 @@ function renderSwimlane(){
   let html = `<div class="sw-head name-head">Colaborador</div>`;
   MESES.forEach(m => html += `<div class="sw-head">${m}</div>`);
 
-  const lista = [...filteredCollaborators()].filter(c=>c.status==='ativo'&&normalizeText(c.cargo).includes('vendedor')).sort((a,b) => {
+  const lista = [...filteredCollaborators()].filter(c=>{
+    if(c.status!=='ativo')return false;
+    const cargo=normalizeText(c.cargo);
+    return cargo.includes('vendedor')||cargo.includes('gerente');
+  }).sort((a,b) => {
     if(a.status !== b.status) return a.status === 'ativo' ? -1 : 1;
     return a.nome.localeCompare(b.nome);
   });
