@@ -693,7 +693,10 @@ function escapeHtml(s){
 function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
 function excludedFromDashboard(name){
   const normalized=normalizeText(name);
-  return normalized.includes('carol neres')||normalized.includes('carolline stephany neres');
+  return normalized.includes('carol neres');
+}
+function excludedFromMovementMap(name){
+  return normalizeText(name).includes('carolline stephany neres');
 }
 function applyDashboardExclusions(){if(!DATA)return;DATA.colaboradores=(DATA.colaboradores||[]).filter(c=>!excludedFromDashboard(c.nome));DATA.sellerMetrics=(DATA.sellerMetrics||[]).filter(r=>!excludedFromDashboard(r.vendedor));DATA.indicatorMetrics=(DATA.indicatorMetrics||[]).filter(r=>!excludedFromDashboard(r.vendedor))}
 function filteredCollaborators(){
@@ -788,6 +791,26 @@ function mergeRequiredMovementHistory(list){
     while(person.lojasPorMes.length<12)person.lojasPorMes.push(null);
     def.lojas.forEach((loja,idx)=>{person.lojasPorMes[idx]=loja});
   });
+  return result;
+}
+function ensureCarollineActive(list){
+  const result=[...(list||[])];
+  const fullName='Carolline Stephany Neres de Oliveira';
+  let person=result.find(c=>normalizeText(c.nome)===normalizeText(fullName));
+  if(!person){
+    person={
+      id:uid(), nome:fullName, cargo:'Gerente', area:'Gerência',
+      admissao:'2025-09-23', desligamento:null, motivo:null,
+      status:'ativo', lojasPorMes:Array(12).fill(null),
+      origem:'Cadastro ativo restaurado'
+    };
+    result.push(person);
+  }
+  person.status='ativo';
+  person.desligamento=null;
+  person.motivo=null;
+  person.cargo=person.cargo||'Gerente';
+  person.area=person.area||'Gerência';
   return result;
 }
 
@@ -922,7 +945,9 @@ async function loadData(){
   try{
     const parsed = JSON.parse(raw);
     DATA = Object.assign(buildDefaultDataShell(), parsed);
-    DATA.colaboradores=mergeRequiredMovementHistory(mergeSpreadsheetInactives(DATA.colaboradores));
+    DATA.colaboradores=ensureCarollineActive(
+      mergeRequiredMovementHistory(mergeSpreadsheetInactives(DATA.colaboradores))
+    );
     DATA.storeMetrics=Array.isArray(DATA.storeMetrics)?DATA.storeMetrics:[];
     DATA.sellerMetrics=Array.isArray(DATA.sellerMetrics)?DATA.sellerMetrics:[];
     DATA.indicatorMetrics=Array.isArray(DATA.indicatorMetrics)?DATA.indicatorMetrics:[];
@@ -1124,6 +1149,7 @@ function renderSwimlane(){
 
   const lista = [...filteredCollaborators()].filter(c=>{
     if(c.status!=='ativo')return false;
+    if(excludedFromMovementMap(c.nome))return false;
     const cargo=normalizeText(c.cargo);
     return cargo.includes('vendedor')||cargo.includes('gerente');
   }).sort((a,b) => {
