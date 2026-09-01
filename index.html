@@ -691,7 +691,10 @@ function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
-function excludedFromDashboard(name){return normalizeText(name).includes('carol neres')}
+function excludedFromDashboard(name){
+  const normalized=normalizeText(name);
+  return normalized.includes('carol neres')||normalized.includes('carolline stephany neres');
+}
 function applyDashboardExclusions(){if(!DATA)return;DATA.colaboradores=(DATA.colaboradores||[]).filter(c=>!excludedFromDashboard(c.nome));DATA.sellerMetrics=(DATA.sellerMetrics||[]).filter(r=>!excludedFromDashboard(r.vendedor));DATA.indicatorMetrics=(DATA.indicatorMetrics||[]).filter(r=>!excludedFromDashboard(r.vendedor))}
 function filteredCollaborators(){
   const q=normalizeText(FILTERS.employee),from=FILTERS.from||'0000-01-01',to=FILTERS.to||'9999-12-31';
