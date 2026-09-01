@@ -1581,7 +1581,11 @@ document.getElementById('storeUploadInput').addEventListener('change',async e=>{
     if(!parsed.length)throw new Error('Nenhuma linha válida encontrada. Confira se existe a aba Acomp Metas Vendedores.');
     DATA.storeMetrics=parsed;
     const ok=await persistAndRender();if(!ok)alert('A planilha foi lida, mas não foi salva. Entre como administrador e tente novamente.');
-  }catch(err){alert(`Não foi possível importar: ${err.message}`)}finally{e.target.value=''}
+  }catch(err){
+    COMMERCIAL_IMPORT_CAPTURE=false;
+    COMMERCIAL_IMPORT_TARGET='';
+    alert(`Não foi possível importar: ${err.message}`)
+  }finally{e.target.value=''}
 });
 function downloadStoreRotationPDF(){
   const a=storeAnalysis();if(!a.rows.length){alert('Importe os indicadores das lojas antes de gerar o relatório.');return}
@@ -1652,6 +1656,7 @@ document.getElementById('logoutBtn').addEventListener('click',async()=>{await cl
 
 let COMMERCIAL_SELECTED = '';
 let COMMERCIAL_IMPORT_CAPTURE = false;
+let COMMERCIAL_IMPORT_TARGET = '';
 
 
 /* ============================================================
@@ -1748,12 +1753,6 @@ function inferCommercialCompetence() {
     );
   }
 
-  if (DATA?.storeMetricsMeta?.importedAt) {
-    candidates.push(
-      DATA.storeMetricsMeta.importedAt
-    );
-  }
-
   const normalized = candidates
     .map(commercialNormalizeCompetence)
     .filter(Boolean)
@@ -1763,6 +1762,15 @@ function inferCommercialCompetence() {
     return normalized[
       normalized.length - 1
     ];
+  }
+
+  // A data da importação só é usada quando a planilha realmente não traz
+  // nenhuma competência. Assim, agosto importado em setembro continua agosto.
+  if (DATA?.storeMetricsMeta?.importedAt) {
+    const imported = commercialNormalizeCompetence(
+      DATA.storeMetricsMeta.importedAt
+    );
+    if (imported) return imported;
   }
 
   // Caso não encontre competência nos dados,
@@ -1846,6 +1854,10 @@ function ensureCommercialHistory() {
           DATA.storeMetricsMeta || {}
         ),
 
+      status: 'open',
+
+      closedAt: null,
+
       savedAt:
         new Date().toISOString()
 
@@ -1926,6 +1938,14 @@ function saveCommercialSnapshot(comp) {
   }
 
 
+  const previous = DATA.commercialHistory[comp] || {};
+
+  if (previous.status === 'closed') {
+    throw new Error(
+      `${commercialMonthLabel(comp)} está fechado. Reabra a competência antes de substituir seus dados.`
+    );
+  }
+
   DATA.commercialHistory[comp] = {
 
     storeMetrics:
@@ -1952,6 +1972,10 @@ function saveCommercialSnapshot(comp) {
       competence: comp
 
     },
+
+    status: 'open',
+
+    closedAt: null,
 
     savedAt:
       new Date().toISOString()
@@ -2213,10 +2237,42 @@ function ensureCommercialMonthSelector() {
     color:var(--ink-soft);
   `;
 
+  const status = document.createElement('span');
+  status.id = 'commercialMonthStatus';
+  status.style.cssText = `
+    font:600 10px 'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    border-radius:999px;
+    padding:7px 10px;
+  `;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'commercialCloseMonthBtn';
+  closeBtn.type = 'button';
+  closeBtn.className = 'btn primary';
+  closeBtn.textContent = 'Fechar mês';
+
+  const nextBtn = document.createElement('button');
+  nextBtn.id = 'commercialOpenNextBtn';
+  nextBtn.type = 'button';
+  nextBtn.className = 'btn ghost';
+  nextBtn.textContent = 'Abrir próximo mês';
+
+  const reopenBtn = document.createElement('button');
+  reopenBtn.id = 'commercialReopenMonthBtn';
+  reopenBtn.type = 'button';
+  reopenBtn.className = 'btn ghost';
+  reopenBtn.textContent = 'Reabrir mês';
+
 
   wrap.append(
     label,
     select,
+    status,
+    closeBtn,
+    nextBtn,
+    reopenBtn,
     hint
   );
 
@@ -2271,6 +2327,10 @@ function ensureCommercialMonthSelector() {
 
     }
   );
+
+  closeBtn.addEventListener('click', closeCommercialMonth);
+  nextBtn.addEventListener('click', openNextCommercialMonth);
+  reopenBtn.addEventListener('click', reopenCommercialMonth);
 
 
   refreshCommercialMonthSelector();
@@ -2398,6 +2458,102 @@ function refreshCommercialMonthSelector() {
 
   }
 
+  const snap = COMMERCIAL_SELECTED && COMMERCIAL_SELECTED !== 'ALL'
+    ? commercialSnapshot(COMMERCIAL_SELECTED)
+    : null;
+  const isClosed = snap?.status === 'closed';
+  const status = document.getElementById('commercialMonthStatus');
+  const closeBtn = document.getElementById('commercialCloseMonthBtn');
+  const nextBtn = document.getElementById('commercialOpenNextBtn');
+  const reopenBtn = document.getElementById('commercialReopenMonthBtn');
+  const uploadBtn = document.getElementById('storeUploadBtn');
+  const canEdit = Boolean(adminSession) && COMMERCIAL_SELECTED !== 'ALL';
+
+  if (status) {
+    status.textContent = COMMERCIAL_SELECTED === 'ALL'
+      ? 'Consolidado'
+      : isClosed ? 'Mês fechado' : 'Mês aberto';
+    status.style.color = isClosed ? 'var(--clay)' : 'var(--teal)';
+    status.style.background = isClosed ? 'var(--clay-soft)' : 'var(--teal-soft)';
+  }
+  if (closeBtn) {
+    closeBtn.hidden = !adminSession || COMMERCIAL_SELECTED === 'ALL' || isClosed;
+    closeBtn.disabled = !canEdit || isClosed;
+  }
+  if (nextBtn) {
+    nextBtn.hidden = !adminSession || COMMERCIAL_SELECTED === 'ALL' || !isClosed;
+    nextBtn.disabled = !canEdit || !isClosed;
+  }
+  if (reopenBtn) {
+    reopenBtn.hidden = !adminSession || COMMERCIAL_SELECTED === 'ALL' || !isClosed;
+    reopenBtn.disabled = !canEdit || !isClosed;
+  }
+  if (uploadBtn) {
+    uploadBtn.disabled = COMMERCIAL_SELECTED === 'ALL' || isClosed;
+    uploadBtn.title = isClosed
+      ? 'Este mês está fechado. Reabra-o para alterar os dados.'
+      : 'Importar a planilha desta competência';
+  }
+
+}
+
+function commercialNextCompetence(comp) {
+  const [year, month] = String(comp || '').split('-').map(Number);
+  if (!year || !month) return '';
+  const next = new Date(year, month, 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function closeCommercialMonth() {
+  if (!adminSession || !COMMERCIAL_SELECTED || COMMERCIAL_SELECTED === 'ALL') return;
+  const snap = commercialSnapshot(COMMERCIAL_SELECTED);
+  if (!snap || snap.status === 'closed') return;
+  const label = commercialMonthLabel(COMMERCIAL_SELECTED);
+  if (!confirm(`Fechar ${label}? Os dados ficarão protegidos contra novas importações.`)) return;
+  snap.status = 'closed';
+  snap.closedAt = new Date().toISOString();
+  snap.closedBy = adminSession.user.id;
+  const ok = await persistAndRender();
+  if (!ok) alert('Não foi possível salvar o fechamento do mês. Tente novamente.');
+}
+
+async function openNextCommercialMonth() {
+  if (!adminSession || !COMMERCIAL_SELECTED || COMMERCIAL_SELECTED === 'ALL') return;
+  const current = commercialSnapshot(COMMERCIAL_SELECTED);
+  if (current?.status !== 'closed') {
+    alert('Feche o mês atual antes de abrir a próxima competência.');
+    return;
+  }
+  const next = commercialNextCompetence(COMMERCIAL_SELECTED);
+  if (!next) return;
+  if (!DATA.commercialHistory[next]) {
+    DATA.commercialHistory[next] = {
+      storeMetrics: [], sellerMetrics: [], indicatorMetrics: [],
+      storeMetricsMeta: {competence: next},
+      status: 'open', closedAt: null, openedAt: new Date().toISOString(),
+      openedBy: adminSession.user.id, savedAt: new Date().toISOString()
+    };
+  }
+  COMMERCIAL_SELECTED = next;
+  hydrateCommercialSnapshot(next);
+  const ok = await persistAndRender();
+  syncCommercialFilterOptions(true);
+  refreshCommercialResults();
+  if (!ok) alert('A nova competência foi aberta na tela, mas não foi salva. Tente novamente.');
+}
+
+async function reopenCommercialMonth() {
+  if (!adminSession || !COMMERCIAL_SELECTED || COMMERCIAL_SELECTED === 'ALL') return;
+  const snap = commercialSnapshot(COMMERCIAL_SELECTED);
+  if (!snap || snap.status !== 'closed') return;
+  const label = commercialMonthLabel(COMMERCIAL_SELECTED);
+  if (!confirm(`Reabrir ${label}? A competência poderá receber uma nova importação.`)) return;
+  snap.status = 'open';
+  snap.reopenedAt = new Date().toISOString();
+  snap.reopenedBy = adminSession.user.id;
+  snap.closedAt = null;
+  const ok = await persistAndRender();
+  if (!ok) alert('Não foi possível salvar a reabertura do mês. Tente novamente.');
 }
 
 
@@ -2465,10 +2621,22 @@ if (_storeUploadInputHistory) {
 
       'change',
 
-      () => {
-
-        COMMERCIAL_IMPORT_CAPTURE =
-          true;
+      event => {
+        const target = COMMERCIAL_SELECTED && COMMERCIAL_SELECTED !== 'ALL'
+          ? COMMERCIAL_SELECTED
+          : inferCommercialCompetence();
+        const snap = target ? commercialSnapshot(target) : null;
+        if (snap?.status === 'closed') {
+          COMMERCIAL_IMPORT_CAPTURE = false;
+          COMMERCIAL_IMPORT_TARGET = '';
+          alert(`${commercialMonthLabel(target)} está fechado. Reabra o mês antes de importar outra planilha.`);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          event.target.value = '';
+          return;
+        }
+        COMMERCIAL_IMPORT_TARGET = target;
+        COMMERCIAL_IMPORT_CAPTURE = true;
 
       },
 
@@ -2499,8 +2667,60 @@ persistAndRender =
       COMMERCIAL_IMPORT_CAPTURE
     ) {
 
-      const comp =
-        inferCommercialCompetence();
+      const comp = COMMERCIAL_IMPORT_TARGET || inferCommercialCompetence();
+
+      const rowCompetences = [
+        ...(DATA.sellerMetrics || []),
+        ...(DATA.indicatorMetrics || [])
+      ].map(r => commercialNormalizeCompetence(r.date)).filter(Boolean);
+
+      if (rowCompetences.length && !rowCompetences.includes(comp)) {
+        COMMERCIAL_IMPORT_CAPTURE = false;
+        COMMERCIAL_IMPORT_TARGET = '';
+        throw new Error(
+          `A planilha não contém dados de ${commercialMonthLabel(comp)}. Competências encontradas: ${[...new Set(rowCompetences)].map(commercialMonthLabel).join(', ')}.`
+        );
+      }
+
+      // Planilhas acumuladas podem trazer vários meses. Dentro da competência
+      // aberta, guardamos somente as linhas daquele mês para evitar duplicidade.
+      if (rowCompetences.length) {
+        DATA.sellerMetrics = (DATA.sellerMetrics || []).filter(
+          r => commercialNormalizeCompetence(r.date) === comp
+        );
+        DATA.indicatorMetrics = (DATA.indicatorMetrics || []).filter(
+          r => commercialNormalizeCompetence(r.date) === comp
+        );
+
+        if (DATA.sellerMetrics.length) {
+          const groups = {};
+          DATA.sellerMetrics.forEach(r => {
+            const g = groups[r.loja] || {
+              loja:r.loja,vendas:0,meta:0,pecas:0,tickets:0,equipe:new Set()
+            };
+            g.vendas += Number(r.vendas) || 0;
+            g.meta += Number(r.meta) || 0;
+            g.pecas += Number(r.pecas) || 0;
+            g.tickets += Number(r.tickets) || 0;
+            if (r.vendedor) g.equipe.add(r.vendedor);
+            groups[r.loja] = g;
+          });
+          DATA.storeMetrics = Object.values(groups).map(g => ({
+            loja:g.loja,
+            vendas:g.vendas,
+            meta:g.meta,
+            atingimento:g.meta ? g.vendas / g.meta * 100 : 0,
+            ticket:g.tickets ? g.vendas / g.tickets : 0,
+            conversao:0,
+            fluxo:g.tickets,
+            equipe:g.equipe.size,
+            vagas:0,
+            produtividade:g.equipe.size ? g.vendas / g.equipe.size : 0,
+            turnover:0,
+            pa:g.tickets ? g.pecas / g.tickets : 0
+          }));
+        }
+      }
 
 
       saveCommercialSnapshot(
@@ -2510,6 +2730,8 @@ persistAndRender =
 
       COMMERCIAL_IMPORT_CAPTURE =
         false;
+
+      COMMERCIAL_IMPORT_TARGET = '';
 
     }
 
