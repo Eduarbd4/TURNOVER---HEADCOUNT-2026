@@ -443,6 +443,19 @@
   #transferRecommendations,#storeExecutiveAnalysis,#sellerBars{max-height:390px;overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--teal) #e8ece8}#transferRecommendations::-webkit-scrollbar,#storeExecutiveAnalysis::-webkit-scrollbar,#sellerBars::-webkit-scrollbar{width:7px}#transferRecommendations::-webkit-scrollbar-thumb,#storeExecutiveAnalysis::-webkit-scrollbar-thumb,#sellerBars::-webkit-scrollbar-thumb{background:var(--teal);border-radius:999px}
   .signal{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;font:600 9px 'IBM Plex Mono',monospace;white-space:nowrap}.signal:before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}.signal.green{background:#dcefe5;color:#167044}.signal.yellow{background:#fff0c7;color:#916500}.signal.red{background:#f8d9d5;color:#a43126}.signal.gray{background:#ecefec;color:#66706a}
   .commercial-subtabs{display:flex;gap:7px;margin:18px 0 8px;padding:5px;background:#e3e9e5;border:1px solid var(--line);border-radius:11px;width:max-content;max-width:100%}.commercial-subtab{border:0;background:transparent;color:var(--ink-soft);font:600 12px 'Space Grotesk',sans-serif;padding:10px 15px;border-radius:8px;cursor:pointer}.commercial-subtab.active{background:#fff;color:var(--teal);box-shadow:0 3px 10px rgba(25,42,35,.08)}.indicator-week{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}.indicator-week-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 15px;background:#263b35;color:#fff}.indicator-week-head h3{margin:0;font:600 16px 'Space Grotesk',sans-serif}.indicator-week-head span{font:10px 'IBM Plex Mono',monospace;color:#cfe1da}.indicator-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0}.indicator-summary .store-kpi{margin:0}.indicator-legend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.indicator-table td:nth-child(1),.indicator-table th:nth-child(1){position:sticky;left:0;background:#fff;z-index:2}.auto-reading{max-width:270px;white-space:normal!important;line-height:1.45}.indicator-empty{padding:30px;text-align:center;color:var(--ink-soft)}@media(max-width:800px){.indicator-summary{grid-template-columns:repeat(2,1fr)}.commercial-subtabs{width:100%}.commercial-subtab{flex:1}}
+  .seller-evolution{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+  .evolution-toolbar{display:grid;grid-template-columns:minmax(220px,1.6fr) minmax(180px,1fr);gap:12px;margin:14px 0 18px}
+  .evolution-toolbar label{font-size:12px;color:var(--ink-soft);display:grid;gap:6px}
+  .evolution-toolbar select{height:42px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 11px;color:var(--ink);font:14px 'Inter',sans-serif}
+  .evolution-chart-shell{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfb}
+  .evolution-chart{min-height:280px}
+  .evolution-chart svg{display:block;width:100%;height:auto;min-height:250px}
+  .evolution-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .evolution-stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .evolution-stat small{display:block;color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+  .evolution-stat b{font-family:'Space Grotesk',sans-serif;font-size:20px}
+  .evolution-empty{display:grid;place-items:center;min-height:240px;color:var(--ink-soft);text-align:center;padding:24px}
+  @media(max-width:760px){.evolution-toolbar{grid-template-columns:1fr}.evolution-stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body data-view="rh">
@@ -638,6 +651,17 @@
   </div>
   <div class="table-scroll scroll-y commercial-overview-content"><table class="store-table"><thead><tr><th>Loja</th><th>Vendas</th><th>Meta</th><th>Atingimento</th><th>Ticket médio</th><th>Conversão</th><th>Atendimentos</th><th>Equipe</th><th>Vagas</th><th>Produtividade</th><th>Turnover</th><th>Índice comercial</th></tr></thead><tbody id="storeMetricsBody"></tbody></table></div>
   <div class="seller-section commercial-overview-content"><div class="eyebrow">Desempenho comercial</div><h2>Análise comparativa por colaborador, gerente e loja</h2><p class="desc">O ranking inclui todas as pessoas do recorte. Os sinais de faturamento, PA e ticket médio seguem automaticamente a lógica semanal da planilha: verde para meta alcançada, amarelo para atenção e vermelho para resultado abaixo da faixa.</p><div class="store-kpis" id="sellerKpis"></div><div class="store-analysis-grid"><article class="decision-card"><h3>Ranking de colaboradores e gerentes</h3><div class="seller-bars" id="sellerBars"></div></article><article class="decision-card"><h3>Análise da seleção</h3><div class="recommend-list" id="sellerAnalysisText"></div></article></div><div class="table-scroll scroll-y"><table class="store-table"><thead><tr><th>Loja</th><th>Colaborador / gerente</th><th>Vendas totais</th><th>Presencial</th><th>E-commerce</th><th>Vendas à vista</th><th>Meta Turbo</th><th>Saldo faturamento</th><th>Peças</th><th>Tickets</th><th>PA</th><th>Saldo PA</th><th>Ticket médio</th><th>Saldo TM</th><th>Índice</th></tr></thead><tbody id="sellerMetricsBody"></tbody><tfoot id="sellerMetricsTotal"></tfoot></table></div></div>
+  <section class="seller-evolution commercial-overview-content" id="sellerEvolutionPanel">
+    <div class="eyebrow">Evolução individual</div>
+    <h2>Indicador por vendedor ao longo do tempo</h2>
+    <p class="desc">Selecione uma pessoa e um indicador para acompanhar a evolução mensal em todas as competências importadas.</p>
+    <div class="evolution-toolbar">
+      <label>Vendedor<select id="evolutionSeller" aria-label="Vendedor da evolução"></select></label>
+      <label>Indicador<select id="evolutionMetric" aria-label="Indicador da evolução"><option value="atingimento">Atingimento da meta</option><option value="vendas">Faturamento</option><option value="pa">PA</option><option value="ticket">Ticket médio</option><option value="pecas">Peças vendidas</option><option value="tickets">Tickets</option></select></label>
+    </div>
+    <div class="evolution-stats" id="evolutionStats"></div>
+    <div class="evolution-chart-shell"><div class="evolution-chart" id="sellerEvolutionChart"></div></div>
+  </section>
   <div id="indicatorReportPanel" hidden><div class="eyebrow">Modelo da planilha · Relatório de Indicadores</div><h2>Relatório semanal de indicadores</h2><p class="desc">Os valores desta aba são importados diretamente da aba Relatório de Indicadores da planilha: faturamento, meta da semana, saldo em %, PA, saldo PA, TM e saldo TM, com as mesmas regras de cor.</p><div class="indicator-legend"><span class="signal green">Meta alcançada</span><span class="signal yellow">Faixa de atenção</span><span class="signal red">Abaixo da faixa</span><span class="signal gray">Sem dado</span></div><div class="indicator-summary" id="indicatorSummary"></div><div id="indicatorWeeks"></div></div>
 </section>
 
@@ -1364,6 +1388,47 @@ function renderSellerAnalysis(){
   }
 }
 
+function allHistoricalSellerRows(){
+  const history=DATA?.commercialHistory||{};
+  const keys=Object.keys(history).filter(k=>/^2026-\d{2}$/.test(k)).sort();
+  if(keys.length)return keys.flatMap(k=>(history[k]?.sellerMetrics||[]).map(r=>({...r,date:commercialNormalizeCompetence(r.date)||k})));
+  return DATA?.sellerMetrics||[];
+}
+function evolutionAggregate(rows,seller){
+  const months={};
+  rows.filter(r=>r.vendedor===seller).forEach(r=>{
+    const month=commercialNormalizeCompetence(r.date);if(!month)return;
+    const g=months[month]||={month,vendas:0,meta:0,pecas:0,tickets:0,lojas:new Set()};
+    g.vendas+=Number(r.vendas)||0;g.meta+=Number(r.meta)||0;g.pecas+=Number(r.pecas)||0;g.tickets+=Number(r.tickets)||0;if(r.loja)g.lojas.add(r.loja);months[month]=g;
+  });
+  return Object.values(months).sort((a,b)=>a.month.localeCompare(b.month)).map(g=>({...g,atingimento:g.meta?g.vendas/g.meta*100:0,pa:g.tickets?g.pecas/g.tickets:0,ticket:g.tickets?g.vendas/g.tickets:0}));
+}
+function evolutionFormat(value,metric){
+  if(metric==='vendas'||metric==='ticket')return brl(value);
+  if(metric==='atingimento')return pct(value);
+  if(metric==='pa')return Number(value||0).toFixed(2).replace('.',',');
+  return Math.round(Number(value)||0).toLocaleString('pt-BR');
+}
+function renderSellerEvolution(){
+  const sellerEl=document.getElementById('evolutionSeller'),metricEl=document.getElementById('evolutionMetric'),chart=document.getElementById('sellerEvolutionChart'),stats=document.getElementById('evolutionStats');
+  if(!sellerEl||!metricEl||!chart||!stats)return;
+  const rows=allHistoricalSellerRows(),current=sellerEl.value,sellers=[...new Set(rows.map(r=>r.vendedor).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  sellerEl.innerHTML=sellers.map(s=>`<option value="${escapeHtml(s)}" ${s===current?'selected':''}>${escapeHtml(s)}</option>`).join('');
+  if(!sellerEl.value&&sellers.length)sellerEl.value=sellers[0];
+  if(!sellers.length){stats.innerHTML='';chart.innerHTML='<div class="evolution-empty">Importe a planilha para visualizar a evolução mensal por vendedor.</div>';return}
+  const metric=metricEl.value||'atingimento',series=evolutionAggregate(rows,sellerEl.value),values=series.map(r=>Number(r[metric])||0);
+  if(!series.length){stats.innerHTML='';chart.innerHTML='<div class="evolution-empty">Não há histórico para o vendedor selecionado.</div>';return}
+  const first=values[0],last=values[values.length-1],best=Math.max(...values),change=last-first;
+  stats.innerHTML=`<div class="evolution-stat"><small>Primeiro mês</small><b>${evolutionFormat(first,metric)}</b></div><div class="evolution-stat"><small>Último mês</small><b>${evolutionFormat(last,metric)}</b></div><div class="evolution-stat"><small>Melhor resultado</small><b>${evolutionFormat(best,metric)}</b></div><div class="evolution-stat"><small>Variação</small><b class="${change>=0?'up':'down'}">${change>=0?'+':''}${evolutionFormat(change,metric)}</b></div>`;
+  const w=900,h=290,padL=76,padR=28,padT=28,padB=48,innerW=w-padL-padR,innerH=h-padT-padB,n=series.length,max=Math.max(...values,1),min=Math.min(...values,0),range=max-min||1,x=i=>padL+(n===1?innerW/2:i*innerW/(n-1)),y=v=>padT+innerH-(v-min)/range*innerH;
+  const grid=[0,.25,.5,.75,1].map(q=>{const val=min+range*q,yy=y(val);return`<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="var(--line)"/><text x="${padL-10}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink-soft)">${escapeHtml(evolutionFormat(val,metric))}</text>`}).join('');
+  const points=series.map((r,i)=>`${x(i)},${y(values[i])}`).join(' '),area=`${x(0)},${padT+innerH} ${points} ${x(n-1)},${padT+innerH}`;
+  const dots=series.map((r,i)=>`<g><circle cx="${x(i)}" cy="${y(values[i])}" r="5" fill="var(--paper)" stroke="var(--teal)" stroke-width="3"><title>${commercialMonthLabel(r.month)}: ${evolutionFormat(values[i],metric)}</title></circle><text x="${x(i)}" y="${h-17}" text-anchor="middle" font-size="11" fill="var(--ink-soft)">${MESES[Number(r.month.slice(5,7))-1]}</text><text x="${x(i)}" y="${Math.max(16,y(values[i])-11)}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${escapeHtml(evolutionFormat(values[i],metric))}</text></g>`).join('');
+  chart.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Evolução de ${escapeHtml(metricEl.options[metricEl.selectedIndex].text)} de ${escapeHtml(sellerEl.value)}">${grid}<polygon points="${area}" fill="var(--teal-soft)" opacity=".7"/><polyline points="${points}" fill="none" stroke="var(--teal)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+}
+document.getElementById('evolutionSeller')?.addEventListener('change',renderSellerEvolution);
+document.getElementById('evolutionMetric')?.addEventListener('change',renderSellerEvolution);
+
 function renderAll(){
   DERIVED = computeDerived();
   refreshFilterOptions();
@@ -1376,6 +1441,7 @@ function renderAll(){
   syncCommercialFilterOptions();
   renderStoreRotationReport();
   renderSellerAnalysis();
+  renderSellerEvolution();
   renderDirectIndicatorReport();
   renderRoster();
   renderInactives();
@@ -2701,20 +2767,9 @@ if (_storeUploadInputHistory) {
       'change',
 
       event => {
-        const target = COMMERCIAL_SELECTED && COMMERCIAL_SELECTED !== 'ALL'
-          ? COMMERCIAL_SELECTED
-          : inferCommercialCompetence();
-        const snap = target ? commercialSnapshot(target) : null;
-        if (snap?.status === 'closed') {
-          COMMERCIAL_IMPORT_CAPTURE = false;
-          COMMERCIAL_IMPORT_TARGET = '';
-          alert(`${commercialMonthLabel(target)} está fechado. Reabra o mês antes de importar outra planilha.`);
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          event.target.value = '';
-          return;
-        }
-        COMMERCIAL_IMPORT_TARGET = target;
+        // A competência real será identificada depois da leitura do arquivo.
+        // Isso permite importar de uma vez uma planilha acumulada com vários meses.
+        COMMERCIAL_IMPORT_TARGET = '';
         COMMERCIAL_IMPORT_CAPTURE = true;
 
       },
@@ -2746,31 +2801,88 @@ persistAndRender =
       COMMERCIAL_IMPORT_CAPTURE
     ) {
 
-      const comp = COMMERCIAL_IMPORT_TARGET || inferCommercialCompetence();
-
-      const rowCompetences = [
+      const rowCompetences = [...new Set([
         ...(DATA.sellerMetrics || []),
         ...(DATA.indicatorMetrics || [])
-      ].map(r => commercialNormalizeCompetence(r.date)).filter(Boolean);
+      ].map(r => commercialNormalizeCompetence(r.date)).filter(Boolean))].sort();
 
-      if (rowCompetences.length && !rowCompetences.includes(comp)) {
-        COMMERCIAL_IMPORT_CAPTURE = false;
-        COMMERCIAL_IMPORT_TARGET = '';
-        throw new Error(
-          `A planilha não contém dados de ${commercialMonthLabel(comp)}. Competências encontradas: ${[...new Set(rowCompetences)].map(commercialMonthLabel).join(', ')}.`
-        );
-      }
-
-      // Planilhas acumuladas podem trazer vários meses. Dentro da competência
-      // aberta, guardamos somente as linhas daquele mês para evitar duplicidade.
       if (rowCompetences.length) {
-        DATA.sellerMetrics = (DATA.sellerMetrics || []).filter(
-          r => commercialNormalizeCompetence(r.date) === comp
-        );
-        DATA.indicatorMetrics = (DATA.indicatorMetrics || []).filter(
-          r => commercialNormalizeCompetence(r.date) === comp
-        );
+        ensureCommercialHistory();
+        const importedSellerRows = structuredClone(DATA.sellerMetrics || []);
+        const importedIndicatorRows = structuredClone(DATA.indicatorMetrics || []);
+        const importedMeta = structuredClone(DATA.storeMetricsMeta || {});
+        const protectedMonths = [];
 
+        for (const comp of rowCompetences) {
+          const previous = commercialSnapshot(comp);
+          if (previous?.status === 'closed') {
+            protectedMonths.push(comp);
+            continue;
+          }
+
+          const sellerMetrics = importedSellerRows.filter(
+            r => commercialNormalizeCompetence(r.date) === comp
+          );
+          const indicatorMetrics = importedIndicatorRows.filter(
+            r => commercialNormalizeCompetence(r.date) === comp
+          );
+          const groups = {};
+          sellerMetrics.forEach(r => {
+            const g = groups[r.loja] || {
+              loja:r.loja,vendas:0,meta:0,pecas:0,tickets:0,equipe:new Set()
+            };
+            g.vendas += Number(r.vendas) || 0;
+            g.meta += Number(r.meta) || 0;
+            g.pecas += Number(r.pecas) || 0;
+            g.tickets += Number(r.tickets) || 0;
+            if (r.vendedor) g.equipe.add(r.vendedor);
+            groups[r.loja] = g;
+          });
+          const storeMetrics = Object.values(groups).map(g => ({
+            loja:g.loja,
+            vendas:g.vendas,
+            meta:g.meta,
+            atingimento:g.meta ? g.vendas / g.meta * 100 : 0,
+            ticket:g.tickets ? g.vendas / g.tickets : 0,
+            conversao:0,
+            fluxo:g.tickets,
+            equipe:g.equipe.size,
+            vagas:0,
+            produtividade:g.equipe.size ? g.vendas / g.equipe.size : 0,
+            turnover:0,
+            pa:g.tickets ? g.pecas / g.tickets : 0
+          }));
+
+          DATA.commercialHistory[comp] = {
+            storeMetrics,
+            sellerMetrics,
+            indicatorMetrics,
+            storeMetricsMeta:{...importedMeta, competence:comp, latest:comp},
+            status:'open',
+            closedAt:null,
+            savedAt:new Date().toISOString()
+          };
+        }
+
+        const importedMonths = rowCompetences.filter(c => !protectedMonths.includes(c));
+        const latestImported = importedMonths[importedMonths.length - 1];
+        if (latestImported) {
+          COMMERCIAL_SELECTED = latestImported;
+          hydrateCommercialSnapshot(latestImported);
+        }
+
+        if (protectedMonths.length) {
+          setTimeout(() => alert(
+            `Importação concluída. Meses fechados preservados: ${protectedMonths.map(commercialMonthLabel).join(', ')}.`
+          ), 0);
+        }
+      } else {
+        const comp = COMMERCIAL_IMPORT_TARGET || inferCommercialCompetence();
+        if ((commercialSnapshot(comp)?.status) === 'closed') {
+          COMMERCIAL_IMPORT_CAPTURE = false;
+          COMMERCIAL_IMPORT_TARGET = '';
+          throw new Error(`${commercialMonthLabel(comp)} está fechado. Reabra a competência antes de substituir seus dados.`);
+        }
         if (DATA.sellerMetrics.length) {
           const groups = {};
           DATA.sellerMetrics.forEach(r => {
@@ -2799,12 +2911,8 @@ persistAndRender =
             pa:g.tickets ? g.pecas / g.tickets : 0
           }));
         }
+        saveCommercialSnapshot(comp);
       }
-
-
-      saveCommercialSnapshot(
-        comp
-      );
 
 
       COMMERCIAL_IMPORT_CAPTURE =
