@@ -465,9 +465,39 @@
   .report-chart-card{border:1px solid #cfdad4;border-radius:14px;background:linear-gradient(180deg,#fff 0%,#f7faf8 100%);padding:18px;margin-bottom:16px;overflow:hidden}.report-chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}.report-chart-head h3{margin:0;font:600 18px 'Space Grotesk',sans-serif}.report-chart-legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--ink-soft);font-size:12px}.report-chart-legend span{display:inline-flex;align-items:center;gap:6px}.legend-line{width:22px;height:3px;border-radius:3px;background:var(--teal)}.legend-dash{width:22px;border-top:2px dashed var(--mustard)}
   .report-chart{min-height:340px}.report-chart svg{display:block;width:100%;height:auto;min-height:300px}.sales-report-table td,.sales-report-table th{text-align:right}.sales-report-table td:first-child,.sales-report-table th:first-child{text-align:left}.trend-up{color:var(--teal);font-weight:700}.trend-down{color:var(--clay);font-weight:700}
   @media(max-width:820px){.sales-report-filters{grid-template-columns:1fr}.report-chart{min-height:280px}}
+  html:not(.site-authorized) body{overflow:hidden}
+  html:not(.site-authorized) body>*:not(#siteAccessGate){visibility:hidden!important}
+  .access-gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 18% 12%,rgba(66,143,118,.28),transparent 34%),linear-gradient(145deg,#102d26 0%,#173e34 52%,#0d2520 100%);visibility:visible!important}
+  html.site-authorized .access-gate{display:none}
+  .access-card{width:min(440px,100%);background:rgba(255,255,255,.98);border:1px solid rgba(255,255,255,.35);border-radius:22px;padding:34px;box-shadow:0 30px 90px rgba(0,0,0,.32)}
+  .access-mark{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--teal);color:#fff;font:700 20px 'Space Grotesk',sans-serif;margin-bottom:22px}
+  .access-card h1{font-size:28px;margin:5px 0 8px}.access-card p{margin:0 0 24px;color:var(--ink-soft);line-height:1.55}
+  .access-card label{display:grid;gap:8px;color:var(--ink);font-size:13px;font-weight:600}.access-input-wrap{display:flex;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}.access-input-wrap:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(31,111,92,.13)}
+  .access-input-wrap input{width:100%;height:48px;border:0;outline:0;padding:0 14px;font:16px 'Inter',sans-serif}.access-toggle{border:0;background:transparent;padding:0 14px;color:var(--teal);font-weight:600;cursor:pointer}
+  .access-submit{width:100%;height:48px;margin-top:14px;border:0;border-radius:10px;background:var(--teal);color:#fff;font:600 15px 'Space Grotesk',sans-serif;cursor:pointer}.access-submit:hover{background:#195c4d}.access-submit:disabled{opacity:.65;cursor:wait}
+  .access-error{min-height:20px;margin-top:10px!important;margin-bottom:0!important;color:var(--clay)!important;font-size:13px}.access-foot{margin-top:22px!important;margin-bottom:0!important;padding-top:16px;border-top:1px solid var(--line);font:11px 'IBM Plex Mono',monospace;color:var(--ink-soft)!important}
 </style>
+<script>try{if(sessionStorage.getItem('turnover_site_access_v1')==='authorized')document.documentElement.classList.add('site-authorized')}catch(e){}</script>
 </head>
 <body data-view="rh">
+
+<div class="access-gate" id="siteAccessGate" role="dialog" aria-modal="true" aria-labelledby="siteAccessTitle">
+  <form class="access-card" id="siteAccessForm">
+    <div class="access-mark" aria-hidden="true">TH</div>
+    <div class="eyebrow">Acesso restrito · 2026</div>
+    <h1 id="siteAccessTitle">Turnover &amp; Headcount</h1>
+    <p>Digite a senha para acessar os indicadores de pessoas e os relatórios comerciais.</p>
+    <label for="siteAccessPassword">Senha
+      <span class="access-input-wrap"><input id="siteAccessPassword" type="password" autocomplete="current-password" required autofocus><button class="access-toggle" id="siteAccessToggle" type="button" aria-label="Mostrar senha">Mostrar</button></span>
+    </label>
+    <button class="access-submit" id="siteAccessSubmit" type="submit">Entrar no painel</button>
+    <p class="access-error" id="siteAccessError" role="alert" aria-live="polite"></p>
+    <p class="access-foot">INTELIGÊNCIA COMERCIAL &amp; PESSOAS</p>
+  </form>
+</div>
+<script>
+(()=>{const form=document.getElementById('siteAccessForm'),input=document.getElementById('siteAccessPassword'),toggle=document.getElementById('siteAccessToggle'),error=document.getElementById('siteAccessError'),submit=document.getElementById('siteAccessSubmit'),expected='4beb4d268b026eff5e541990082eb58b53f0af3fa2f3fd22060e7e0bf3484fd1';toggle.addEventListener('click',()=>{const show=input.type==='password';input.type=show?'text':'password';toggle.textContent=show?'Ocultar':'Mostrar';toggle.setAttribute('aria-label',show?'Ocultar senha':'Mostrar senha')});form.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;error.textContent='';try{const bytes=new TextEncoder().encode(input.value),digest=await crypto.subtle.digest('SHA-256',bytes),hash=[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');if(hash!==expected){error.textContent='Senha incorreta. Verifique e tente novamente.';input.select();return}sessionStorage.setItem('turnover_site_access_v1','authorized');document.documentElement.classList.add('site-authorized');input.value=''}finally{submit.disabled=false}})})();
+</script>
 
 <div class="loading-veil" id="loadingVeil">Carregando dados do painel…</div>
 
